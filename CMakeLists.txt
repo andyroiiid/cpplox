@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.21)
+project(cpplox)
+
+set(CMAKE_CXX_STANDARD 17)
+
+add_executable(cpplox
+        op_code.h
+        value.cpp value.h
+        chunk.cpp chunk.h
+        vm.cpp vm.h
+        main.cpp)
+
+target_compile_definitions(cpplox PRIVATE DEBUG_TRACE_EXECUTION)
