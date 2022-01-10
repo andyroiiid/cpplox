@@ -22,7 +22,7 @@ public:
 
     explicit inline Value(double value) : _type(ValueType::Number) { _as.number = value; }
 
-    inline Value(const char *chars, int length) : Value(new ObjString(chars, length)) {}
+    inline Value(const char *chars, int length) : Value(ObjString::create(chars, length)) {}
 
     [[nodiscard]] inline bool isBool() const { return _type == ValueType::Bool; }
 

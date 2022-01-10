@@ -23,34 +23,42 @@ void Obj::print() const {
 void Obj::free(Obj *obj) {
     switch (obj->type) {
         case ObjType::String:
-            delete reinterpret_cast<ObjString *>(obj);
+            ObjString::free(reinterpret_cast<ObjString *>(obj));
             break;
     }
 }
 
+ObjString *ObjString::create(const char *chars, int length) {
+    char *buf = new char[sizeof(ObjString) + length + 1];
+    new(buf) ObjString(chars, length);
+    return reinterpret_cast<ObjString *>(buf);
+}
+
+ObjString *ObjString::concatenate(const ObjString *a, const ObjString *b) {
+    char *buf = new char[sizeof(ObjString) + a->_length + b->_length + 1];
+    new(buf) ObjString(a, b);
+    return reinterpret_cast<ObjString *>(buf);
+}
+
+void ObjString::free(ObjString *string) {
+    delete[] reinterpret_cast<char *>(string);
+}
+
 ObjString::ObjString(const char *chars, int length) : Obj(ObjType::String) {
-    _chars = new char[length + 1];
+    char *buf = reinterpret_cast<char *>(this) + sizeof(ObjString);
     _length = length;
-    memcpy(_chars, chars, length);
-    _chars[_length] = '\0';
+    memcpy(buf, chars, length);
+    buf[_length] = '\0';
 }
 
-ObjString::ObjString(const ObjString &a, const ObjString &b) : Obj(ObjType::String) {
-    _chars = new char[a._length + b._length + 1];
-    _length = a._length + b._length;
-    memcpy(_chars, a._chars, a._length);
-    memcpy(_chars + a._length, b._chars, b._length);
-    _chars[_length] = '\0';
+ObjString::ObjString(const ObjString *a, const ObjString *b) : Obj(ObjType::String) {
+    char *buf = reinterpret_cast<char *>(this) + sizeof(ObjString);
+    _length = a->_length + b->_length;
+    memcpy(buf, a->chars(), a->_length);
+    memcpy(buf + a->_length, b->chars(), b->_length);
+    buf[_length] = '\0';
 }
 
-ObjString::~ObjString() {
-    delete[] _chars;
-}
-
-bool ObjString::operator==(const ObjString &rhs) const {
-    return _length == rhs._length && memcmp(_chars, rhs._chars, _length) == 0;
-}
-
-ObjString *ObjString::concatenate(const ObjString *string) {
-    return new ObjString(*this, *string);
+bool ObjString::equals(const ObjString *rhs) const {
+    return _length == rhs->_length && memcmp(chars(), rhs->chars(), _length) == 0;
 }

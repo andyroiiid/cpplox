@@ -22,20 +22,24 @@ struct Obj {
 
 class ObjString : public Obj {
 public:
-    ObjString(const char *chars, int length);
+    static ObjString *create(const char *chars, int length);
 
-    ObjString(const ObjString &a, const ObjString &b);
+    static ObjString *concatenate(const ObjString *a, const ObjString *b);
 
-    ~ObjString();
+    static void free(ObjString *string);
 
-    [[nodiscard]] inline const char *chars() const { return _chars; }
+    [[nodiscard]] inline const char *chars() const {
+        return reinterpret_cast<const char *>(this) + sizeof(ObjString);
+    }
 
-    bool operator==(const ObjString &rhs) const;
-
-    ObjString *concatenate(const ObjString *string);
+    bool equals(const ObjString *rhs) const;
 
 private:
-    char *_chars = nullptr;
+    ObjString(const char *chars, int length);
+
+    ObjString(const ObjString *a, const ObjString *b);
+
+private:
     int _length = 0;
 };
 
