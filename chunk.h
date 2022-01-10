@@ -12,10 +12,17 @@
 
 enum class OpCode : uint8_t {
     Constant,
+    Nil,
+    True,
+    False,
+    Equal,
+    Greater,
+    Less,
     Add,
     Subtract,
     Multiply,
     Divide,
+    Not,
     Negate,
     Return,
 };
@@ -29,6 +36,8 @@ public:
     Value getConstant(uint8_t index);
 
     [[nodiscard]] const uint8_t *code() const { return _code.data(); }
+
+    [[nodiscard]] size_t getInstructionLine(size_t instruction) const { return _lines[instruction]; }
 
     void disassemble(const std::string &name) const;
 

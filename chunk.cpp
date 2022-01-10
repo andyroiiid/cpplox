@@ -40,6 +40,18 @@ size_t Chunk::disassembleInstruction(size_t offset) const {
     switch (instruction) {
         case OpCode::Constant:
             return constantInstruction("OP_CONSTANT", offset);
+        case OpCode::Nil:
+            return simpleInstruction("OP_NIL", offset);
+        case OpCode::True:
+            return simpleInstruction("OP_TRUE", offset);
+        case OpCode::False:
+            return simpleInstruction("OP_FALSE", offset);
+        case OpCode::Equal:
+            return simpleInstruction("OP_EQUAL", offset);
+        case OpCode::Greater:
+            return simpleInstruction("OP_GREATER", offset);
+        case OpCode::Less:
+            return simpleInstruction("OP_LESS", offset);
         case OpCode::Add:
             return simpleInstruction("OP_ADD", offset);
         case OpCode::Subtract:
@@ -48,6 +60,8 @@ size_t Chunk::disassembleInstruction(size_t offset) const {
             return simpleInstruction("OP_MULTIPLY", offset);
         case OpCode::Divide:
             return simpleInstruction("OP_DIVIDE", offset);
+        case OpCode::Not:
+            return simpleInstruction("OP_NOT", offset);
         case OpCode::Negate:
             return simpleInstruction("OP_NEGATE", offset);
         case OpCode::Return:

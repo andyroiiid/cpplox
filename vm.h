@@ -18,19 +18,13 @@ public:
     InterpretResult interpret(const std::string &source);
 
 private:
+    void runtimeError(const char *format, ...) const;
+
     InterpretResult run();
 
     inline uint8_t readByte() { return *_ip++; }
 
     inline Value readConstant() { return _chunk.getConstant(readByte()); }
-
-    template<class BinaryOp>
-    inline void binaryOp() {
-        static BinaryOp op;
-        Value b = pop();
-        Value a = pop();
-        push(op(a, b));
-    }
 
     inline void push(Value value) { _stack.push_back(value); }
 
@@ -39,6 +33,8 @@ private:
         _stack.pop_back();
         return value;
     }
+
+    [[nodiscard]] inline Value peek(int distance) const { return _stack[_stack.size() - 1 - distance]; }
 
     Chunk _chunk;
     const uint8_t *_ip = nullptr;

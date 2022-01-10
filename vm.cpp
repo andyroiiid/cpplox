@@ -4,7 +4,7 @@
 
 #include "vm.h"
 
-#include <functional>
+#include <cstdarg>
 
 #include "compiler.h"
 
@@ -20,6 +20,18 @@ VM::InterpretResult VM::interpret(const std::string &source) {
     _ip = _chunk.code();
 
     return run();
+}
+
+void VM::runtimeError(const char *format, ...) const {
+    va_list args;
+    (va_start(args, format));
+    vfprintf(stderr, format, args);
+    (va_end(args));
+    fprintf(stderr, "\n");
+
+    size_t instruction = _ip - _chunk.code() - 1;
+    size_t line = _chunk.getInstructionLine(instruction);
+    fprintf(stderr, "[line %llu] in script\n", line);
 }
 
 VM::InterpretResult VM::run() {
@@ -42,24 +54,101 @@ VM::InterpretResult VM::run() {
                 push(constant);
                 break;
             }
+            case OpCode::Nil: {
+                push(Value());
+                break;
+            }
+            case OpCode::True: {
+                push(Value(true));
+                break;
+            }
+            case OpCode::False: {
+                push(Value(false));
+                break;
+            }
+            case OpCode::Equal: {
+                Value b = pop();
+                Value a = pop();
+                push(Value(a == b));
+                break;
+            }
+            case OpCode::Greater: {
+                Value b = pop();
+                Value a = pop();
+                Value result = a > b;
+                if (result.isNil()) {
+                    runtimeError("Operand must be numbers.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
+                break;
+            }
+            case OpCode::Less: {
+                Value b = pop();
+                Value a = pop();
+                Value result = a < b;
+                if (result.isNil()) {
+                    runtimeError("Operand must be numbers.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
+                break;
+            }
             case OpCode::Add: {
-                binaryOp<std::plus<Value>>();
+                Value b = pop();
+                Value a = pop();
+                Value result = a + b;
+                if (result.isNil()) {
+                    runtimeError("Operand must be numbers.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
                 break;
             }
             case OpCode::Subtract: {
-                binaryOp<std::minus<Value>>();
+                Value b = pop();
+                Value a = pop();
+                Value result = a - b;
+                if (result.isNil()) {
+                    runtimeError("Operand must be numbers.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
                 break;
             }
             case OpCode::Multiply: {
-                binaryOp<std::multiplies<Value>>();
+                Value b = pop();
+                Value a = pop();
+                Value result = a * b;
+                if (result.isNil()) {
+                    runtimeError("Operand must be numbers.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
                 break;
             }
             case OpCode::Divide: {
-                binaryOp<std::divides<Value>>();
+                Value b = pop();
+                Value a = pop();
+                Value result = a / b;
+                if (result.isNil()) {
+                    runtimeError("Operand must be numbers.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
+                break;
+            }
+            case OpCode::Not: {
+                push(Value(pop().isFalsey()));
                 break;
             }
             case OpCode::Negate: {
-                push(-pop());
+                Value result = -pop();
+                if (result.isNil()) {
+                    runtimeError("Operand must be a number.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
                 break;
             }
             case OpCode::Return: {

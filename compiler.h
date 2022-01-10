@@ -44,6 +44,8 @@ private:
 
     void binary();
 
+    void literal();
+
     void grouping();
 
     void number();

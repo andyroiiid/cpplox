@@ -79,6 +79,27 @@ void Compiler::binary() {
     parsePrecedence(static_cast<Precedence>(static_cast<int>(rule->precedence) + 1));
 
     switch (operatorType) {
+        case TokenType::BangEqual:
+            emitByte(OpCode::Equal);
+            emitByte(OpCode::Not);
+            break;
+        case TokenType::EqualEqual:
+            emitByte(OpCode::Equal);
+            break;
+        case TokenType::Greater:
+            emitByte(OpCode::Greater);
+            break;
+        case TokenType::GreaterEqual:
+            emitByte(OpCode::Less);
+            emitByte(OpCode::Not);
+            break;
+        case TokenType::Less:
+            emitByte(OpCode::Less);
+            break;
+        case TokenType::LessEqual:
+            emitByte(OpCode::Greater);
+            emitByte(OpCode::Not);
+            break;
         case TokenType::Plus:
             emitByte(OpCode::Add);
             break;
@@ -90,6 +111,22 @@ void Compiler::binary() {
             break;
         case TokenType::Slash:
             emitByte(OpCode::Divide);
+            break;
+        default:
+            break;
+    }
+}
+
+void Compiler::literal() {
+    switch (_parser.previous.type) {
+        case TokenType::False:
+            emitByte(OpCode::False);
+            break;
+        case TokenType::Nil:
+            emitByte(OpCode::Nil);
+            break;
+        case TokenType::True:
+            emitByte(OpCode::True);
             break;
         default:
             break;
@@ -112,6 +149,9 @@ void Compiler::unary() {
     expression();
 
     switch (operatorType) {
+        case TokenType::Bang:
+            emitByte(OpCode::Not);
+            break;
         case TokenType::Minus:
             emitByte(OpCode::Negate);
             break;
@@ -150,31 +190,31 @@ const Compiler::ParseRule *Compiler::getRule(TokenType type) {
             {nullptr,             nullptr,           Precedence::None}, // semicolon
             {nullptr,             &Compiler::binary, Precedence::Factor}, // slash
             {nullptr,             &Compiler::binary, Precedence::Factor}, // star
-            {nullptr,             nullptr,           Precedence::None}, // bang
-            {nullptr,             nullptr,           Precedence::None}, // bang equal
+            {&Compiler::unary,    nullptr,           Precedence::None}, // bang
+            {nullptr,             &Compiler::binary, Precedence::Equality}, // bang equal
             {nullptr,             nullptr,           Precedence::None}, // equal
-            {nullptr,             nullptr,           Precedence::None}, // equal equal
-            {nullptr,             nullptr,           Precedence::None}, // greater
-            {nullptr,             nullptr,           Precedence::None}, // greater equal
-            {nullptr,             nullptr,           Precedence::None}, // less
-            {nullptr,             nullptr,           Precedence::None}, // less equal
+            {nullptr,             &Compiler::binary, Precedence::Equality}, // equal equal
+            {nullptr,             &Compiler::binary, Precedence::Comparison}, // greater
+            {nullptr,             &Compiler::binary, Precedence::Comparison}, // greater equal
+            {nullptr,             &Compiler::binary, Precedence::Comparison}, // less
+            {nullptr,             &Compiler::binary, Precedence::Comparison}, // less equal
             {nullptr,             nullptr,           Precedence::None}, // identifier
             {nullptr,             nullptr,           Precedence::None}, // string
             {&Compiler::number,   nullptr,           Precedence::None}, // number
             {nullptr,             nullptr,           Precedence::None}, // and
             {nullptr,             nullptr,           Precedence::None}, // class
             {nullptr,             nullptr,           Precedence::None}, // else
-            {nullptr,             nullptr,           Precedence::None}, // false
+            {&Compiler::literal,  nullptr,           Precedence::None}, // false
             {nullptr,             nullptr,           Precedence::None}, // for
             {nullptr,             nullptr,           Precedence::None}, // fun
             {nullptr,             nullptr,           Precedence::None}, // if
-            {nullptr,             nullptr,           Precedence::None}, // nil
+            {&Compiler::literal,  nullptr,           Precedence::None}, // nil
             {nullptr,             nullptr,           Precedence::None}, // or
             {nullptr,             nullptr,           Precedence::None}, // print
             {nullptr,             nullptr,           Precedence::None}, // return
             {nullptr,             nullptr,           Precedence::None}, // super
             {nullptr,             nullptr,           Precedence::None}, // this
-            {nullptr,             nullptr,           Precedence::None}, // true
+            {&Compiler::literal,  nullptr,           Precedence::None}, // true
             {nullptr,             nullptr,           Precedence::None}, // var
             {nullptr,             nullptr,           Precedence::None}, // while
             {nullptr,             nullptr,           Precedence::None}, // error
