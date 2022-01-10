@@ -48,9 +48,9 @@ VM::InterpretResult VM::run() {
 #ifdef DEBUG_TRACE_EXECUTION
         printf("          ");
         for (const Value &slot: _stack) {
-            printf("[ ");
+            printf("[");
             slot.print();
-            printf(" ]");
+            printf("]");
         }
         printf("\n");
         _chunk.disassembleInstruction(_ip - _chunk.code());
@@ -73,6 +73,35 @@ VM::InterpretResult VM::run() {
             }
             case OpCode::False: {
                 push(Value(false));
+                break;
+            }
+            case OpCode::Pop: {
+                pop();
+                break;
+            }
+            case OpCode::GetGlobal: {
+                ObjString *name = readString();
+                Value value;
+                if (!_globals.get(name, &value)) {
+                    runtimeError("Undefined variable '%s'\n", name->chars());
+                    return InterpretResult::RuntimeError;
+                }
+                push(value);
+                break;
+            }
+            case OpCode::DefineGlobal: {
+                ObjString *name = readString();
+                _globals.set(name, peek(0));
+                pop();
+                break;
+            }
+            case OpCode::SetGlobal: {
+                ObjString *name = readString();
+                if (_globals.set(name, peek(0))) {
+                    _globals.remove(name);
+                    runtimeError("Undefined variable, '%s'.", name->chars());
+                    return InterpretResult::RuntimeError;
+                }
                 break;
             }
             case OpCode::Equal: {
@@ -160,9 +189,12 @@ VM::InterpretResult VM::run() {
                 push(result);
                 break;
             }
-            case OpCode::Return: {
+            case OpCode::Print: {
                 pop().print();
                 printf("\n");
+                break;
+            }
+            case OpCode::Return: {
                 return InterpretResult::Ok;
             }
             default: {

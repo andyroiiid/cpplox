@@ -10,8 +10,10 @@ bool Compiler::compile(const std::string &source, Chunk *chunk) {
     _compilingChunk = chunk;
 
     advance();
-    expression();
-    consume(TokenType::Eof, "Expect end of expression.");
+
+    while (!match(TokenType::Eof)) {
+        declaration();
+    }
 
     endCompile();
     return !_parser.hadError;
@@ -36,6 +38,12 @@ void Compiler::consume(TokenType type, const char *message) {
         return;
     }
     errorAtCurrent(message);
+}
+
+bool Compiler::match(TokenType type) {
+    if (!check(type)) return false;
+    advance();
+    return true;
 }
 
 void Compiler::emitByte(uint8_t byte) {
@@ -147,6 +155,20 @@ void Compiler::string() {
     emitConstant(Value(_parser.previous.start + 1, _parser.previous.length - 2));
 }
 
+void Compiler::namedVariable(Token name) {
+    uint8_t arg = identifierConstant(&name);
+    if (match(TokenType::Equal)) {
+        expression();
+        emitBytes(OpCode::SetGlobal, arg);
+    } else {
+        emitBytes(OpCode::GetGlobal, arg);
+    }
+}
+
+void Compiler::variable() {
+    namedVariable(_parser.previous);
+}
+
 void Compiler::unary() {
     TokenType operatorType = _parser.previous.type;
 
@@ -161,23 +183,6 @@ void Compiler::unary() {
             break;
         default:
             break;
-    }
-}
-
-void Compiler::parsePrecedence(Precedence precedence) {
-    advance();
-    ParseFn prefixRule = getRule(_parser.previous.type)->prefix;
-    if (prefixRule == nullptr) {
-        error("Expect expression.");
-        return;
-    }
-
-    (this->*prefixRule)();
-
-    while (precedence <= getRule(_parser.current.type)->precedence) {
-        advance();
-        ParseFn infixRule = getRule(_parser.previous.type)->infix;
-        (this->*infixRule)();
     }
 }
 
@@ -202,7 +207,7 @@ const Compiler::ParseRule *Compiler::getRule(TokenType type) {
             {nullptr,             &Compiler::binary, Precedence::Comparison}, // greater equal
             {nullptr,             &Compiler::binary, Precedence::Comparison}, // less
             {nullptr,             &Compiler::binary, Precedence::Comparison}, // less equal
-            {nullptr,             nullptr,           Precedence::None}, // identifier
+            {&Compiler::variable, nullptr,           Precedence::None}, // identifier
             {&Compiler::string,   nullptr,           Precedence::None}, // string
             {&Compiler::number,   nullptr,           Precedence::None}, // number
             {nullptr,             nullptr,           Precedence::None}, // and
@@ -227,8 +232,102 @@ const Compiler::ParseRule *Compiler::getRule(TokenType type) {
     return RULES + static_cast<int>(type);
 }
 
+void Compiler::parsePrecedence(Precedence precedence) {
+    advance();
+    ParseFn prefixRule = getRule(_parser.previous.type)->prefix;
+    if (prefixRule == nullptr) {
+        error("Expect expression.");
+        return;
+    }
+
+    (this->*prefixRule)();
+
+    while (precedence <= getRule(_parser.current.type)->precedence) {
+        advance();
+        ParseFn infixRule = getRule(_parser.previous.type)->infix;
+        (this->*infixRule)();
+    }
+}
+
+uint8_t Compiler::identifierConstant(Token *name) {
+    return makeConstant(Value(name->start, name->length));
+}
+
+uint8_t Compiler::parseVariable(const char *errorMessage) {
+    consume(TokenType::Identifier, errorMessage);
+    return identifierConstant(&_parser.previous);
+}
+
+void Compiler::defineVariable(uint8_t global) {
+    emitBytes(OpCode::DefineGlobal, global);
+}
+
 void Compiler::expression() {
     parsePrecedence(Precedence::Assignment);
+}
+
+void Compiler::varDeclaration() {
+    uint8_t global = parseVariable("Expect variable name.");
+
+    if (match(TokenType::Equal)) {
+        expression();
+    } else {
+        emitByte(OpCode::Nil);
+    }
+    consume(TokenType::Semicolon, "Expect ';' after variable declaration.");
+
+    defineVariable(global);
+}
+
+void Compiler::expressionStatement() {
+    expression();
+    consume(TokenType::Semicolon, "Expect ';' after expression.");
+    emitByte(OpCode::Pop);
+}
+
+void Compiler::printStatement() {
+    expression();
+    consume(TokenType::Semicolon, "Expect ';' after value.");
+    emitByte(OpCode::Print);
+}
+
+void Compiler::synchronize() {
+    _parser.panicMode = false;
+    while (_parser.current.type != TokenType::Eof) {
+        if (_parser.previous.type == TokenType::Semicolon) return;
+        switch (_parser.current.type) {
+            case TokenType::Class:
+            case TokenType::Fun:
+            case TokenType::Var:
+            case TokenType::For:
+            case TokenType::If:
+            case TokenType::While:
+            case TokenType::Print:
+            case TokenType::Return:
+                return;
+            default:
+                break;
+        }
+        advance();
+    }
+}
+
+void Compiler::declaration() {
+    if (match(TokenType::Var)) {
+        varDeclaration();
+    } else {
+        statement();
+    }
+
+    if (_parser.panicMode) synchronize();
+}
+
+void Compiler::statement() {
+    if (match(TokenType::Print)) {
+        printStatement();
+    } else {
+        expressionStatement();
+    }
 }
 
 void Compiler::errorAt(const Token &token, const char *message) {

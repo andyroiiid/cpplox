@@ -15,6 +15,10 @@ enum class OpCode : uint8_t {
     Nil,
     True,
     False,
+    Pop,
+    GetGlobal,
+    DefineGlobal,
+    SetGlobal,
     Equal,
     Greater,
     Less,
@@ -24,6 +28,7 @@ enum class OpCode : uint8_t {
     Divide,
     Not,
     Negate,
+    Print,
     Return,
 };
 

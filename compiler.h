@@ -28,6 +28,10 @@ private:
 
     void consume(TokenType type, const char *message);
 
+    [[nodiscard]] inline bool check(TokenType type) const { return _parser.current.type == type; }
+
+    bool match(TokenType type);
+
     void emitByte(uint8_t byte);
 
     inline void emitByte(OpCode opCode) { emitByte(static_cast<uint8_t>(opCode)); }
@@ -52,6 +56,10 @@ private:
 
     void string();
 
+    void namedVariable(Token name);
+
+    void variable();
+
     void unary();
 
     enum class Precedence {
@@ -66,11 +74,29 @@ private:
         Precedence precedence = Precedence::None;
     };
 
-    void parsePrecedence(Precedence precedence);
-
     static const ParseRule *getRule(TokenType type);
 
+    void parsePrecedence(Precedence precedence);
+
+    uint8_t identifierConstant(Token *name);
+
+    uint8_t parseVariable(const char *errorMessage);
+
+    void defineVariable(uint8_t global);
+
     void expression();
+
+    void varDeclaration();
+
+    void expressionStatement();
+
+    void printStatement();
+
+    void synchronize();
+
+    void declaration();
+
+    void statement();
 
     inline void errorAtCurrent(const char *message) { errorAt(_parser.current, message); }
 

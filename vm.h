@@ -38,6 +38,8 @@ private:
 
     inline Value readConstant() { return _chunk.getConstant(readByte()); }
 
+    inline ObjString *readString() { return readConstant().asString(); }
+
     inline void push(Value value) { _stack.push_back(value); }
 
     inline Value pop() {
@@ -51,6 +53,7 @@ private:
     Chunk _chunk;
     const uint8_t *_ip = nullptr;
     std::vector<Value> _stack;
+    Table _globals;
     Table _strings;
     Obj *_objects = nullptr;
 };
