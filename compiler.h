@@ -46,27 +46,27 @@ private:
 
     void endCompile();
 
-    void binary();
+    void binary(bool canAssign);
 
-    void literal();
+    void literal(bool canAssign);
 
-    void grouping();
+    void grouping(bool canAssign);
 
-    void number();
+    void number(bool canAssign);
 
-    void string();
+    void string(bool canAssign);
 
-    void namedVariable(Token name);
+    void namedVariable(Token name, bool canAssign);
 
-    void variable();
+    void variable(bool canAssign);
 
-    void unary();
+    void unary(bool canAssign);
 
     enum class Precedence {
         None, Assignment, Or, And, Equality, Comparison, Term, Factor, Unary, Call, Primary
     };
 
-    typedef void (Compiler::*ParseFn)();
+    typedef void (Compiler::*ParseFn)(bool canAssign);
 
     struct ParseRule {
         ParseFn prefix = nullptr;
