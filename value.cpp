@@ -60,7 +60,7 @@ bool Value::operator==(const Value &rhs) const {
         case ValueType::Number:
             return asNumber() == rhs.asNumber();
         case ValueType::Obj:
-            return asString()->equals(rhs.asString());
+            return asObj() == rhs.asObj();
         default:
             return false;
     }

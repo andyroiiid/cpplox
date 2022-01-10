@@ -7,6 +7,7 @@
 
 #include "chunk.h"
 #include "singleton.h"
+#include "table.h"
 
 class VM final : public Singleton<VM> {
 public:
@@ -17,6 +18,8 @@ public:
     };
 
     InterpretResult interpret(const std::string &source);
+
+    inline Table &strings() { return _strings; };
 
     inline Obj *&objects() { return _objects; }
 
@@ -48,6 +51,7 @@ private:
     Chunk _chunk;
     const uint8_t *_ip = nullptr;
     std::vector<Value> _stack;
+    Table _strings;
     Obj *_objects = nullptr;
 };
 

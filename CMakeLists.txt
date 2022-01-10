@@ -11,6 +11,7 @@ add_executable(cpplox
         chunk.cpp chunk.h
         scanner.cpp scanner.h
         compiler.cpp compiler.h
+        table.cpp table.h
         vm.cpp vm.h
         main.cpp)
 

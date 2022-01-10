@@ -5,12 +5,16 @@
 #ifndef CPPLOX_OBJECT_H
 #define CPPLOX_OBJECT_H
 
+#include <cstdint>
+
 enum class ObjType {
     String,
 };
 
 struct Obj {
-    explicit Obj(ObjType type);
+    inline explicit Obj(ObjType type) : type(type) {}
+
+    void addToVM();
 
     void print() const;
 
@@ -32,15 +36,19 @@ public:
         return reinterpret_cast<const char *>(this) + sizeof(ObjString);
     }
 
-    bool equals(const ObjString *rhs) const;
+    [[nodiscard]] int length() const { return _length; }
+
+    [[nodiscard]] uint32_t hash() const { return _hash; }
 
 private:
-    ObjString(const char *chars, int length);
+    static uint32_t hash(const char *key, int length);
+
+    ObjString(const char *chars, int length, uint32_t hash);
 
     ObjString(const ObjString *a, const ObjString *b);
 
-private:
     int _length = 0;
+    uint32_t _hash = 0;
 };
 
 #endif //CPPLOX_OBJECT_H

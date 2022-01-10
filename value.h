@@ -8,8 +8,8 @@
 #include "object.h"
 
 enum class ValueType {
-    Bool,
     Nil,
+    Bool,
     Number,
     Obj,
 };

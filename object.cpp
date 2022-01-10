@@ -6,8 +6,8 @@
 
 #include "vm.h"
 
-Obj::Obj(ObjType type) : type(type) {
-    Obj *&objects = VM::instance().objects();
+void Obj::addToVM() {
+    auto &objects = VM::instance().objects();
     next = objects;
     objects = this;
 }
@@ -29,26 +29,61 @@ void Obj::free(Obj *obj) {
 }
 
 ObjString *ObjString::create(const char *chars, int length) {
+    Table &strings = VM::instance().strings();
+
+    uint32_t h = hash(chars, length);
+    ObjString *interned = strings.find(chars, length, h);
+
+    if (interned != nullptr) {
+        return interned;
+    }
+
     char *buf = new char[sizeof(ObjString) + length + 1];
-    new(buf) ObjString(chars, length);
-    return reinterpret_cast<ObjString *>(buf);
+    new(buf) ObjString(chars, length, h);
+    auto string = reinterpret_cast<ObjString *>(buf);
+
+    string->addToVM();
+    strings.set(string, Value());
+    return string;
 }
 
 ObjString *ObjString::concatenate(const ObjString *a, const ObjString *b) {
+    Table &strings = VM::instance().strings();
+
     char *buf = new char[sizeof(ObjString) + a->_length + b->_length + 1];
     new(buf) ObjString(a, b);
-    return reinterpret_cast<ObjString *>(buf);
+    auto string = reinterpret_cast<ObjString *>(buf);
+
+    ObjString *interned = strings.find(string->chars(), string->_length, string->_hash);
+    if (interned != nullptr) {
+        delete[] buf;
+        return interned;
+    }
+
+    string->addToVM();
+    strings.set(string, Value());
+    return string;
 }
 
 void ObjString::free(ObjString *string) {
     delete[] reinterpret_cast<char *>(string);
 }
 
-ObjString::ObjString(const char *chars, int length) : Obj(ObjType::String) {
+uint32_t ObjString::hash(const char *key, int length) {
+    uint32_t hash = 2166136261u;
+    for (int i = 0; i < length; i++) {
+        hash ^= (uint8_t) key[i];
+        hash *= 16777619;
+    }
+    return hash;
+}
+
+ObjString::ObjString(const char *chars, int length, uint32_t hash) : Obj(ObjType::String) {
     char *buf = reinterpret_cast<char *>(this) + sizeof(ObjString);
     _length = length;
     memcpy(buf, chars, length);
     buf[_length] = '\0';
+    _hash = hash;
 }
 
 ObjString::ObjString(const ObjString *a, const ObjString *b) : Obj(ObjType::String) {
@@ -57,8 +92,5 @@ ObjString::ObjString(const ObjString *a, const ObjString *b) : Obj(ObjType::Stri
     memcpy(buf, a->chars(), a->_length);
     memcpy(buf + a->_length, b->chars(), b->_length);
     buf[_length] = '\0';
-}
-
-bool ObjString::equals(const ObjString *rhs) const {
-    return _length == rhs->_length && memcmp(chars(), rhs->chars(), _length) == 0;
+    _hash = hash(buf, _length);
 }
