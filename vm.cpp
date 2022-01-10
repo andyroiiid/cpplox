@@ -6,10 +6,12 @@
 
 #include <functional>
 
-VM::InterpretResult VM::interpret(Chunk *chunk) {
-    _chunk = chunk;
-    _ip = chunk->code();
-    return run();
+#include "compiler.h"
+
+VM::InterpretResult VM::interpret(const std::string &source) {
+    Compiler compiler;
+    compiler.compile(source);
+    return InterpretResult::Ok;
 }
 
 VM::InterpretResult VM::run() {

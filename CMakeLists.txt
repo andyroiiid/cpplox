@@ -7,6 +7,8 @@ add_executable(cpplox
         op_code.h
         value.cpp value.h
         chunk.cpp chunk.h
+        scanner.cpp scanner.h
+        compiler.cpp compiler.h
         vm.cpp vm.h
         main.cpp)
 

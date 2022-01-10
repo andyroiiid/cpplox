@@ -15,7 +15,7 @@ public:
         RuntimeError,
     };
 
-    InterpretResult interpret(Chunk *chunk);
+    InterpretResult interpret(const std::string &source);
 
 private:
     InterpretResult run();
