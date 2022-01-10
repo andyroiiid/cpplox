@@ -4,7 +4,8 @@
 #include <fstream>
 #include <sstream>
 
-static void repl(VM &vm) {
+static void repl() {
+    VM &vm = VM::instance();
     while (std::cin) {
         printf("> ");
         std::string line;
@@ -20,19 +21,18 @@ static std::string readFile(const std::string &path) {
     return buffer.str();
 }
 
-static void runFile(VM &vm, const std::string &path) {
+static void runFile(const std::string &path) {
     std::string source = readFile(path);
-    VM::InterpretResult result = vm.interpret(source);
+    VM::InterpretResult result = VM::instance().interpret(source);
     if (result == VM::InterpretResult::CompileError) exit(65);
     if (result == VM::InterpretResult::RuntimeError) exit(70);
 }
 
 int main(int argc, const char *argv[]) {
-    VM vm;
     if (argc == 1) {
-        repl(vm);
+        repl();
     } else if (argc == 2) {
-        runFile(vm, argv[1]);
+        runFile(argv[1]);
     } else {
         fprintf(stderr, "Usage cpplox [path]\n");
         exit(64);

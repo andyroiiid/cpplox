@@ -4,7 +4,10 @@ project(cpplox)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(cpplox
+        non_copyable.h
+        singleton.h
         value.cpp value.h
+        object.cpp object.h
         chunk.cpp chunk.h
         scanner.cpp scanner.h
         compiler.cpp compiler.h

@@ -8,6 +8,15 @@
 
 #include "compiler.h"
 
+VM::~VM() {
+    Obj *object = _objects;
+    while (object != nullptr) {
+        Obj *next = object->next;
+        Obj::free(object);
+        object = next;
+    }
+}
+
 VM::InterpretResult VM::interpret(const std::string &source) {
     Chunk chunk;
 

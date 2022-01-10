@@ -143,6 +143,10 @@ void Compiler::number() {
     emitConstant(Value(value));
 }
 
+void Compiler::string() {
+    emitConstant(Value(_parser.previous.start + 1, _parser.previous.length - 2));
+}
+
 void Compiler::unary() {
     TokenType operatorType = _parser.previous.type;
 
@@ -199,7 +203,7 @@ const Compiler::ParseRule *Compiler::getRule(TokenType type) {
             {nullptr,             &Compiler::binary, Precedence::Comparison}, // less
             {nullptr,             &Compiler::binary, Precedence::Comparison}, // less equal
             {nullptr,             nullptr,           Precedence::None}, // identifier
-            {nullptr,             nullptr,           Precedence::None}, // string
+            {&Compiler::string,   nullptr,           Precedence::None}, // string
             {&Compiler::number,   nullptr,           Precedence::None}, // number
             {nullptr,             nullptr,           Precedence::None}, // and
             {nullptr,             nullptr,           Precedence::None}, // class

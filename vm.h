@@ -6,8 +6,9 @@
 #define CPPLOX_VM_H
 
 #include "chunk.h"
+#include "singleton.h"
 
-class VM {
+class VM final : public Singleton<VM> {
 public:
     enum class InterpretResult {
         Ok,
@@ -17,7 +18,15 @@ public:
 
     InterpretResult interpret(const std::string &source);
 
+    inline Obj *&objects() { return _objects; }
+
 private:
+    friend class Singleton<VM>;
+
+    VM() = default;
+
+    ~VM();
+
     void runtimeError(const char *format, ...) const;
 
     InterpretResult run();
@@ -39,6 +48,7 @@ private:
     Chunk _chunk;
     const uint8_t *_ip = nullptr;
     std::vector<Value> _stack;
+    Obj *_objects = nullptr;
 };
 
 #endif //CPPLOX_VM_H

@@ -17,6 +17,9 @@ void Value::print() const {
         case ValueType::Number:
             printf("%g", asNumber());
             break;
+        case ValueType::Obj:
+            asObj()->print();
+            break;
     }
 }
 
@@ -26,8 +29,10 @@ Value Value::operator-() const {
 }
 
 Value Value::operator+(const Value &rhs) const {
-    if (_type != rhs._type || !isNumber()) return {};
-    return Value(asNumber() + rhs.asNumber());
+    if (_type != rhs._type) return {};
+    if (isNumber()) return Value(asNumber() + rhs.asNumber());
+    if (isString()) return Value(asString()->string + rhs.asString()->string);
+    return {};
 }
 
 Value Value::operator-(const Value &rhs) const {
@@ -54,6 +59,8 @@ bool Value::operator==(const Value &rhs) const {
             return true;
         case ValueType::Number:
             return asNumber() == rhs.asNumber();
+        case ValueType::Obj:
+            return asString()->string == rhs.asString()->string;
         default:
             return false;
     }

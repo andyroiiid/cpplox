@@ -50,6 +50,8 @@ private:
 
     void number();
 
+    void string();
+
     void unary();
 
     enum class Precedence {
