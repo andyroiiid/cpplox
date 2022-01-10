@@ -18,19 +18,11 @@ class Value {
 public:
     inline Value() : _type(ValueType::Nil) {}
 
-    explicit inline Value(bool value) : _type(ValueType::Bool) {
-        _as.boolean = value;
-    }
+    explicit inline Value(bool value) : _type(ValueType::Bool) { _as.boolean = value; }
 
-    explicit inline Value(double value) : _type(ValueType::Number) {
-        _as.number = value;
-    }
+    explicit inline Value(double value) : _type(ValueType::Number) { _as.number = value; }
 
-    inline Value(const char *chars, int length)
-            : Value(new ObjString(chars, length)) {}
-
-    explicit inline Value(std::string &&string)
-            : Value(new ObjString(std::forward<std::string>(string))) {}
+    inline Value(const char *chars, int length) : Value(new ObjString(chars, length)) {}
 
     [[nodiscard]] inline bool isBool() const { return _type == ValueType::Bool; }
 
@@ -73,9 +65,7 @@ public:
     void print() const;
 
 private:
-    explicit inline Value(Obj *value) : _type(ValueType::Obj) {
-        _as.obj = value;
-    }
+    explicit inline Value(Obj *value) : _type(ValueType::Obj) { _as.obj = value; }
 
     ValueType _type;
     union {

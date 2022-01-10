@@ -5,8 +5,6 @@
 #ifndef CPPLOX_OBJECT_H
 #define CPPLOX_OBJECT_H
 
-#include <string>
-
 enum class ObjType {
     String,
 };
@@ -22,12 +20,23 @@ struct Obj {
     Obj *next = nullptr;
 };
 
-struct ObjString : Obj {
-    const std::string string;
+class ObjString : public Obj {
+public:
+    ObjString(const char *chars, int length);
 
-    ObjString(const char *chars, int length) : Obj(ObjType::String), string(chars, length) {}
+    ObjString(const ObjString &a, const ObjString &b);
 
-    explicit ObjString(std::string &&string) : Obj(ObjType::String), string(std::move(string)) {}
+    ~ObjString();
+
+    [[nodiscard]] inline const char *chars() const { return _chars; }
+
+    bool operator==(const ObjString &rhs) const;
+
+    ObjString *concatenate(const ObjString *string);
+
+private:
+    char *_chars = nullptr;
+    int _length = 0;
 };
 
 #endif //CPPLOX_OBJECT_H

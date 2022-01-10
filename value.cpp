@@ -31,7 +31,7 @@ Value Value::operator-() const {
 Value Value::operator+(const Value &rhs) const {
     if (_type != rhs._type) return {};
     if (isNumber()) return Value(asNumber() + rhs.asNumber());
-    if (isString()) return Value(asString()->string + rhs.asString()->string);
+    if (isString()) return Value(asString()->concatenate(rhs.asString()));
     return {};
 }
 
@@ -60,7 +60,7 @@ bool Value::operator==(const Value &rhs) const {
         case ValueType::Number:
             return asNumber() == rhs.asNumber();
         case ValueType::Obj:
-            return asString()->string == rhs.asString()->string;
+            return *asString() == *rhs.asString();
         default:
             return false;
     }
