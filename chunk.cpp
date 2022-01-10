@@ -11,11 +11,7 @@ void Chunk::write(uint8_t byte, size_t line) {
     _lines.push_back(line);
 }
 
-void Chunk::write(OpCode opCode, size_t line) {
-    write(static_cast<uint8_t>(opCode), line);
-}
-
-uint8_t Chunk::addConstant(Value value) {
+size_t Chunk::addConstant(Value value) {
     size_t index = _constants.size();
     _constants.push_back(value);
     return index;

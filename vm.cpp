@@ -9,9 +9,17 @@
 #include "compiler.h"
 
 VM::InterpretResult VM::interpret(const std::string &source) {
+    Chunk chunk;
+
     Compiler compiler;
-    compiler.compile(source);
-    return InterpretResult::Ok;
+    if (!compiler.compile(source, &chunk)) {
+        return InterpretResult::CompileError;
+    }
+
+    _chunk = std::move(chunk);
+    _ip = _chunk.code();
+
+    return run();
 }
 
 VM::InterpretResult VM::run() {
@@ -24,7 +32,7 @@ VM::InterpretResult VM::run() {
             printf(" ]");
         }
         printf("\n");
-        _chunk->disassembleInstruction(_ip - _chunk->code());
+        _chunk.disassembleInstruction(_ip - _chunk.code());
 #endif
 
         auto instruction = static_cast<OpCode>(readByte());

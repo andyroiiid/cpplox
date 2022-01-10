@@ -26,14 +26,16 @@ enum class TokenType {
 const char *toString(TokenType type);
 
 struct Token {
-    TokenType type;
-    const char *start;
-    int length;
-    int line;
+    TokenType type = TokenType::Error;
+    const char *start = nullptr;
+    int length = 0;
+    size_t line = 0;
 };
 
 class Scanner {
 public:
+    Scanner() = default;
+
     explicit Scanner(const std::string &source);
 
     Token scan();
@@ -73,7 +75,7 @@ private:
 
     const char *_start = nullptr;
     const char *_current = nullptr;
-    int _line = 1;
+    size_t _line = 0;
 };
 
 #endif //CPPLOX_SCANNER_H

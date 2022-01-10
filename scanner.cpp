@@ -24,7 +24,7 @@ const char *toString(TokenType type) {
 }
 
 Scanner::Scanner(const std::string &source)
-        : _start(source.data()), _current(source.data()) {
+        : _start(source.data()), _current(source.data()), _line(1) {
 }
 
 Token Scanner::scan() {

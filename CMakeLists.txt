@@ -4,7 +4,6 @@ project(cpplox)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(cpplox
-        op_code.h
         value.cpp value.h
         chunk.cpp chunk.h
         scanner.cpp scanner.h
@@ -12,4 +11,4 @@ add_executable(cpplox
         vm.cpp vm.h
         main.cpp)
 
-target_compile_definitions(cpplox PRIVATE DEBUG_TRACE_EXECUTION)
+target_compile_definitions(cpplox PRIVATE DEBUG_PRINT_CODE DEBUG_TRACE_EXECUTION)

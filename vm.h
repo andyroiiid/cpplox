@@ -11,7 +11,7 @@ class VM {
 public:
     enum class InterpretResult {
         Ok,
-        CompilerError,
+        CompileError,
         RuntimeError,
     };
 
@@ -22,7 +22,7 @@ private:
 
     inline uint8_t readByte() { return *_ip++; }
 
-    inline Value readConstant() { return _chunk->getConstant(readByte()); }
+    inline Value readConstant() { return _chunk.getConstant(readByte()); }
 
     template<class BinaryOp>
     inline void binaryOp() {
@@ -40,7 +40,7 @@ private:
         return value;
     }
 
-    Chunk *_chunk = nullptr;
+    Chunk _chunk;
     const uint8_t *_ip = nullptr;
     std::vector<Value> _stack;
 };

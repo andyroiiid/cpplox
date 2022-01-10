@@ -23,7 +23,7 @@ static std::string readFile(const std::string &path) {
 static void runFile(VM &vm, const std::string &path) {
     std::string source = readFile(path);
     VM::InterpretResult result = vm.interpret(source);
-    if (result == VM::InterpretResult::CompilerError) exit(65);
+    if (result == VM::InterpretResult::CompileError) exit(65);
     if (result == VM::InterpretResult::RuntimeError) exit(70);
 }
 

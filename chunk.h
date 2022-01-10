@@ -8,16 +8,23 @@
 #include <vector>
 #include <string>
 
-#include "op_code.h"
 #include "value.h"
+
+enum class OpCode : uint8_t {
+    Constant,
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Negate,
+    Return,
+};
 
 class Chunk {
 public:
     void write(uint8_t byte, size_t line);
 
-    void write(OpCode opCode, size_t line);
-
-    uint8_t addConstant(Value value);
+    size_t addConstant(Value value);
 
     Value getConstant(uint8_t index);
 
