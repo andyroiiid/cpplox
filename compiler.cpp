@@ -4,10 +4,37 @@
 
 #include "compiler.h"
 
+bool Scope::addLocal(const Token &name) {
+    if (localCount == UINT8_COUNT) return false;
+
+    Local &local = locals[localCount++];
+    local.name = name;
+    local.depth = -1;
+
+    return true;
+}
+
+Scope::ResolveResult Scope::resolveLocal(const Token &name, int &slot) const {
+    for (int i = localCount - 1; i >= 0; i--) {
+        const Local &local = locals[i];
+        if (name.lexemeEqual(local.name)) {
+            if (local.depth == -1) {
+                return ResolveResult::Uninitialized;
+            } else {
+                slot = i;
+                return ResolveResult::Local;
+            }
+        }
+    }
+    return ResolveResult::Global;
+}
+
 bool Compiler::compile(const std::string &source, Chunk *chunk) {
     _scanner = Scanner(source);
     _parser = Parser();
     _compilingChunk = chunk;
+    Scope scope;
+    beginCompile(&scope);
 
     advance();
 
@@ -72,6 +99,10 @@ void Compiler::emitConstant(Value value) {
     emitBytes(OpCode::Constant, makeConstant(value));
 }
 
+void Compiler::beginCompile(Scope *scope) {
+    _current = scope;
+}
+
 void Compiler::endCompile() {
     emitReturn();
 #ifdef DEBUG_PRINT_CODE
@@ -81,7 +112,21 @@ void Compiler::endCompile() {
 #endif
 }
 
-void Compiler::binary(bool canAssign) {
+void Compiler::beginScope() {
+    _current->scopeDepth++;
+}
+
+void Compiler::endScope() {
+    _current->scopeDepth--;
+
+    while (_current->localCount > 0 &&
+           _current->lastLocal().depth > _current->scopeDepth) {
+        emitByte(OpCode::Pop);
+        _current->localCount--;
+    }
+}
+
+void Compiler::binary(bool) {
     TokenType operatorType = _parser.previous.type;
     const ParseRule *rule = getRule(operatorType);
     parsePrecedence(static_cast<Precedence>(static_cast<int>(rule->precedence) + 1));
@@ -125,7 +170,7 @@ void Compiler::binary(bool canAssign) {
     }
 }
 
-void Compiler::literal(bool canAssign) {
+void Compiler::literal(bool) {
     switch (_parser.previous.type) {
         case TokenType::False:
             emitByte(OpCode::False);
@@ -141,27 +186,44 @@ void Compiler::literal(bool canAssign) {
     }
 }
 
-void Compiler::grouping(bool canAssign) {
+void Compiler::grouping(bool) {
     expression();
     consume(TokenType::RightParen, "Expect ')' after expression.");
 }
 
-void Compiler::number(bool canAssign) {
+void Compiler::number(bool) {
     double value = strtod(_parser.previous.start, nullptr);
     emitConstant(Value(value));
 }
 
-void Compiler::string(bool canAssign) {
+void Compiler::string(bool) {
     emitConstant(Value(_parser.previous.start + 1, _parser.previous.length - 2));
 }
 
 void Compiler::namedVariable(Token name, bool canAssign) {
-    uint8_t arg = identifierConstant(&name);
+    OpCode getOp, setOp;
+    int arg = -1;
+    Scope::ResolveResult result = _current->resolveLocal(name, arg);
+    switch (result) {
+        case Scope::ResolveResult::Local:
+            getOp = OpCode::GetLocal;
+            setOp = OpCode::SetLocal;
+            break;
+        case Scope::ResolveResult::Global:
+            arg = identifierConstant(&name);
+            getOp = OpCode::GetGlobal;
+            setOp = OpCode::SetGlobal;
+            break;
+        case Scope::ResolveResult::Uninitialized:
+            error("Can't read local variable in its own initializer.");
+            break;
+    }
+
     if (canAssign && match(TokenType::Equal)) {
         expression();
-        emitBytes(OpCode::SetGlobal, arg);
+        emitBytes(setOp, arg);
     } else {
-        emitBytes(OpCode::GetGlobal, arg);
+        emitBytes(getOp, arg);
     }
 }
 
@@ -169,7 +231,7 @@ void Compiler::variable(bool canAssign) {
     namedVariable(_parser.previous, canAssign);
 }
 
-void Compiler::unary(bool canAssign) {
+void Compiler::unary(bool) {
     TokenType operatorType = _parser.previous.type;
 
     expression();
@@ -258,17 +320,61 @@ uint8_t Compiler::identifierConstant(Token *name) {
     return makeConstant(Value(name->start, name->length));
 }
 
+void Compiler::addLocal(const Token &name) {
+    if (!_current->addLocal(name)) {
+        error("Too many local variables in function.");
+    }
+}
+
+void Compiler::declareVariable() {
+    if (_current->scopeDepth == 0) return;
+
+    Token &name = _parser.previous;
+    for (int i = _current->localCount - 1; i >= 0; i--) {
+        Local &local = _current->locals[i];
+        if (local.depth != -1 && local.depth < _current->scopeDepth) {
+            break;
+        }
+
+        if (name.lexemeEqual(local.name)) {
+            error("Already a variable with this name in this scope.");
+        }
+    }
+
+    addLocal(name);
+}
+
 uint8_t Compiler::parseVariable(const char *errorMessage) {
     consume(TokenType::Identifier, errorMessage);
+
+    declareVariable();
+    if (_current->scopeDepth > 0) return 0;
+
     return identifierConstant(&_parser.previous);
 }
 
+void Compiler::markInitialized() {
+    _current->lastLocal().depth = _current->scopeDepth;
+}
+
 void Compiler::defineVariable(uint8_t global) {
+    if (_current->scopeDepth > 0) {
+        markInitialized();
+        return;
+    }
+
     emitBytes(OpCode::DefineGlobal, global);
 }
 
 void Compiler::expression() {
     parsePrecedence(Precedence::Assignment);
+}
+
+void Compiler::block() {
+    while (!check(TokenType::RightBrace) && !check(TokenType::Eof)) {
+        declaration();
+    }
+    consume(TokenType::RightBrace, "Expect '}' after block.");
 }
 
 void Compiler::varDeclaration() {
@@ -330,6 +436,10 @@ void Compiler::declaration() {
 void Compiler::statement() {
     if (match(TokenType::Print)) {
         printStatement();
+    } else if (match(TokenType::LeftBrace)) {
+        beginScope();
+        block();
+        endScope();
     } else {
         expressionStatement();
     }

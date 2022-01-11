@@ -30,6 +30,8 @@ struct Token {
     const char *start = nullptr;
     int length = 0;
     size_t line = 0;
+
+    [[nodiscard]] bool lexemeEqual(const Token &rhs) const;
 };
 
 class Scanner {

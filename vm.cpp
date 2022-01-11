@@ -79,6 +79,16 @@ VM::InterpretResult VM::run() {
                 pop();
                 break;
             }
+            case OpCode::GetLocal: {
+                uint8_t slot = readByte();
+                push(_stack[slot]);
+                break;
+            }
+            case OpCode::SetLocal: {
+                uint8_t slot = readByte();
+                _stack[slot] = peek(0);
+                break;
+            }
             case OpCode::GetGlobal: {
                 ObjString *name = readString();
                 Value value;

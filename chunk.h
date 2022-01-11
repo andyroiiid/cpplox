@@ -16,6 +16,8 @@ enum class OpCode : uint8_t {
     True,
     False,
     Pop,
+    GetLocal,
+    SetLocal,
     GetGlobal,
     DefineGlobal,
     SetGlobal,
@@ -50,6 +52,8 @@ public:
 
 private:
     static size_t simpleInstruction(const std::string &name, size_t offset);
+
+    [[nodiscard]] size_t byteInstruction(const std::string &name, size_t offset) const;
 
     [[nodiscard]] size_t constantInstruction(const std::string &name, size_t offset) const;
 

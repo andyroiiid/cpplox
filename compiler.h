@@ -5,6 +5,7 @@
 #ifndef CPPLOX_COMPILER_H
 #define CPPLOX_COMPILER_H
 
+#include <array>
 #include <string>
 
 #include "chunk.h"
@@ -15,6 +16,31 @@ struct Parser {
     Token previous;
     bool hadError = false;
     bool panicMode = false;
+};
+
+struct Local {
+    Token name;
+    int depth = 0;
+};
+
+static constexpr size_t UINT8_COUNT = UINT8_MAX + 1;
+
+struct Scope {
+    std::array<Local, UINT8_COUNT> locals;
+    int localCount = 0;
+    int scopeDepth = 0;
+
+    bool addLocal(const Token &name);
+
+    enum class ResolveResult {
+        Local,
+        Global,
+        Uninitialized
+    };
+
+    ResolveResult resolveLocal(const Token &name, int &slot) const;
+
+    inline Local &lastLocal() { return locals[localCount - 1]; }
 };
 
 class Compiler {
@@ -44,7 +70,13 @@ private:
 
     void emitConstant(Value value);
 
+    void beginCompile(Scope *scope);
+
     void endCompile();
+
+    void beginScope();
+
+    void endScope();
 
     void binary(bool canAssign);
 
@@ -80,11 +112,19 @@ private:
 
     uint8_t identifierConstant(Token *name);
 
+    void addLocal(const Token &name);
+
+    void declareVariable();
+
     uint8_t parseVariable(const char *errorMessage);
+
+    void markInitialized();
 
     void defineVariable(uint8_t global);
 
     void expression();
+
+    void block();
 
     void varDeclaration();
 
@@ -107,6 +147,7 @@ private:
     Scanner _scanner;
     Parser _parser;
     Chunk *_compilingChunk = nullptr;
+    Scope *_current = nullptr;
 };
 
 #endif //CPPLOX_COMPILER_H

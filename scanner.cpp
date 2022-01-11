@@ -23,6 +23,11 @@ const char *toString(TokenType type) {
     return STRINGS[static_cast<int>(type)];
 }
 
+bool Token::lexemeEqual(const Token &rhs) const {
+    if (length != rhs.length) return false;
+    return memcmp(start, rhs.start, length) == 0;
+}
+
 Scanner::Scanner(const std::string &source)
         : _start(source.data()), _current(source.data()), _line(1) {
 }

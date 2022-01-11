@@ -48,6 +48,10 @@ size_t Chunk::disassembleInstruction(size_t offset) const {
             return simpleInstruction("OP_FALSE", offset);
         case OpCode::Pop:
             return simpleInstruction("OP_POP", offset);
+        case OpCode::GetLocal:
+            return byteInstruction("OP_GET_LOCAL", offset);
+        case OpCode::SetLocal:
+            return byteInstruction("OP_SET_LOCAL", offset);
         case OpCode::GetGlobal:
             return constantInstruction("OP_GET_GLOBAL", offset);
         case OpCode::DefineGlobal:
@@ -85,6 +89,12 @@ size_t Chunk::disassembleInstruction(size_t offset) const {
 size_t Chunk::simpleInstruction(const std::string &name, size_t offset) {
     printf("%s\n", name.c_str());
     return offset + 1;
+}
+
+size_t Chunk::byteInstruction(const std::string &name, size_t offset) const {
+    uint8_t slot = _code[offset + 1];
+    printf("%-16s %4d\n", name.c_str(), slot);
+    return offset + 2;
 }
 
 size_t Chunk::constantInstruction(const std::string &name, size_t offset) const {
