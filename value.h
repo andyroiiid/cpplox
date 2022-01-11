@@ -24,6 +24,8 @@ public:
 
     Value(const char *chars, int length);
 
+    explicit inline Value(Obj *value) : _type(ValueType::Obj) { _as.obj = value; }
+
     [[nodiscard]] inline bool isBool() const { return _type == ValueType::Bool; }
 
     [[nodiscard]] inline bool isNil() const { return _type == ValueType::Nil; }
@@ -40,9 +42,15 @@ public:
 
     [[nodiscard]] ObjType objType() const;
 
+    [[nodiscard]] inline bool isObjType(ObjType type) const { return isObj() && objType() == type; }
+
     [[nodiscard]] bool isString() const;
 
+    [[nodiscard]] bool isFunction() const;
+
     [[nodiscard]] inline ObjString *asString() const { return reinterpret_cast<ObjString *>(asObj()); }
+
+    [[nodiscard]] inline ObjFunction *asFunction() const { return reinterpret_cast<ObjFunction *> (asObj()); }
 
     [[nodiscard]] inline bool isFalsey() const { return isNil() || (isBool() && !asBool()); }
 
@@ -73,8 +81,6 @@ public:
     void print() const;
 
 private:
-    explicit inline Value(Obj *value) : _type(ValueType::Obj) { _as.obj = value; }
-
     ValueType _type;
     union {
         bool boolean;

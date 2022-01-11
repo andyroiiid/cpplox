@@ -6,12 +6,12 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(cpplox
         chunk.cpp chunk.h
         compiler.cpp compiler.h
+        compiler_context.cpp compiler_context.h
         forward.h
         non_copyable.h
         object.cpp object.h
         op_code.h
         scanner.cpp scanner.h
-        scope.cpp scope.h
         singleton.h
         table.cpp table.h
         token.h token.cpp

@@ -20,15 +20,12 @@ VM::~VM() {
 }
 
 VM::InterpretResult VM::interpret(const char *source) {
-    Chunk chunk;
-
     Compiler compiler;
-    if (!compiler.compile(source, &chunk)) {
-        return InterpretResult::CompileError;
-    }
+    ObjFunction *function = compiler.compile(source);
+    if (function == nullptr) return InterpretResult::CompileError;
 
-    _chunk = std::move(chunk);
-    _ip = _chunk.code();
+    push(Value(function));
+    _frames.emplace(function, _stack, 0);
 
     return run();
 }
@@ -40,12 +37,15 @@ void VM::runtimeError(const char *format, ...) const {
     (va_end(args));
     fprintf(stderr, "\n");
 
-    int instruction = static_cast<int>(_ip - _chunk.code() - 1);
-    int line = _chunk.getInstructionLine(instruction);
+    const CallFrame &frame = _frames.top();
+    int instruction = static_cast<int>(frame.ip - frame.function->chunk.code() - 1);
+    int line = frame.function->chunk.getInstructionLine(instruction);
     fprintf(stderr, "[line %d] in script\n", line);
 }
 
 VM::InterpretResult VM::run() {
+    CallFrame &frame = _frames.top();
+
     while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
         printf("          ");
@@ -55,7 +55,7 @@ VM::InterpretResult VM::run() {
             printf("]");
         }
         printf("\n");
-        _chunk.disassembleInstruction(static_cast<int>(_ip - _chunk.code()));
+        frame.function->chunk.disassembleInstruction(static_cast<int>(frame.ip - frame.function->chunk.code()));
 #endif
 
         auto instruction = static_cast<OpCode>(readByte());
@@ -83,12 +83,12 @@ VM::InterpretResult VM::run() {
             }
             case OpCode::GetLocal: {
                 uint8_t slot = readByte();
-                push(_stack[slot]);
+                push(frame[slot]);
                 break;
             }
             case OpCode::SetLocal: {
                 uint8_t slot = readByte();
-                _stack[slot] = peek(0);
+                frame[slot] = peek(0);
                 break;
             }
             case OpCode::GetGlobal: {
@@ -247,26 +247,26 @@ VM::InterpretResult VM::run() {
             }
             case OpCode::Jump: {
                 uint16_t offset = readShort();
-                _ip += offset;
+                frame.ip += offset;
                 break;
             }
             case OpCode::JumpIfTrue: {
                 uint16_t offset = readShort();
                 if (!peek(0).isFalsey()) {
-                    _ip += offset;
+                    frame.ip += offset;
                 }
                 break;
             }
             case OpCode::JumpIfFalse: {
                 uint16_t offset = readShort();
                 if (peek(0).isFalsey()) {
-                    _ip += offset;
+                    frame.ip += offset;
                 }
                 break;
             }
             case OpCode::Loop: {
                 uint16_t offset = readShort();
-                _ip -= offset;
+                frame.ip -= offset;
                 break;
             }
             case OpCode::Return: {

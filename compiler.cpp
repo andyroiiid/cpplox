@@ -6,15 +6,13 @@
 
 #include "chunk.h"
 #include "op_code.h"
-#include "scope.h"
 #include "value.h"
 
-bool Compiler::compile(const char *source, Chunk *chunk) {
+ObjFunction *Compiler::compile(const char *source) {
     _scanner = Scanner(source);
     _parser = Parser();
-    _compilingChunk = chunk;
-    Scope scope;
-    beginCompile(&scope);
+    CompilerContext context(FunctionType::Script);
+    beginCompile(&context);
 
     advance();
 
@@ -22,12 +20,8 @@ bool Compiler::compile(const char *source, Chunk *chunk) {
         declaration();
     }
 
-    endCompile();
-    return !_parser.hadError;
-}
-
-Chunk *Compiler::currentChunk() {
-    return _compilingChunk;
+    ObjFunction *function = endCompile();
+    return _parser.hadError ? nullptr : function;
 }
 
 void Compiler::advance() {
@@ -54,7 +48,7 @@ bool Compiler::match(TokenType type) {
 }
 
 void Compiler::emitByte(uint8_t byte) {
-    currentChunk()->write(byte, _parser.previous.line);
+    currentChunk().write(byte, _parser.previous.line);
 }
 
 void Compiler::emitBytes(OpCode opCode, uint8_t byte) {
@@ -65,7 +59,7 @@ void Compiler::emitBytes(OpCode opCode, uint8_t byte) {
 void Compiler::emitLoop(int loopStart) {
     emitByte(OpCode::Loop);
 
-    int offset = currentChunk()->count() - loopStart + 2;
+    int offset = currentChunk().count() - loopStart + 2;
     if (offset > UINT16_MAX) error("Loop body too large.");
 
     emitByte((offset >> 8) & 0xFF);
@@ -76,7 +70,7 @@ int Compiler::emitJump(OpCode instruction) {
     emitByte(instruction);
     emitByte(0xFF);
     emitByte(0xFF);
-    return currentChunk()->count() - 2;
+    return currentChunk().count() - 2;
 }
 
 void Compiler::emitReturn() {
@@ -84,7 +78,7 @@ void Compiler::emitReturn() {
 }
 
 uint8_t Compiler::makeConstant(Value value) {
-    int constant = currentChunk()->addConstant(value);
+    int constant = currentChunk().addConstant(value);
     if (constant > UINT8_MAX) {
         error("Too many constants in one chunk.");
         return 0;
@@ -97,35 +91,40 @@ void Compiler::emitConstant(Value value) {
 }
 
 void Compiler::patchJump(int offset) {
-    int jump = currentChunk()->count() - offset - 2;
+    int jump = currentChunk().count() - offset - 2;
 
     if (jump > UINT16_MAX) {
         error("Too much code to jump over.");
     }
 
-    currentChunk()->patch(offset, (jump >> 8) & 0xFF);
-    currentChunk()->patch(offset + 1, jump & 0xFF);
+    currentChunk().patch(offset, (jump >> 8) & 0xFF);
+    currentChunk().patch(offset + 1, jump & 0xFF);
 }
 
-void Compiler::beginCompile(Scope *scope) {
-    _current = scope;
+void Compiler::beginCompile(CompilerContext *context) {
+    _current = context;
 }
 
-void Compiler::endCompile() {
+ObjFunction *Compiler::endCompile() {
     emitReturn();
+    ObjFunction *function = _current->function();
+
 #ifdef DEBUG_PRINT_CODE
     if (!_parser.hadError) {
-        currentChunk()->disassemble("code");
+        ObjString *name = function->name;
+        currentChunk().disassemble(name != nullptr ? name->chars() : "<script>");
     }
 #endif
+
+    return function;
 }
 
 void Compiler::beginScope() {
-    _current->begin();
+    _current->beginScope();
 }
 
 void Compiler::endScope() {
-    int count = _current->end();
+    int count = _current->endScope();
     for (int i = 0; i < count; i++) {
         emitByte(OpCode::Pop);
     }
@@ -208,18 +207,18 @@ void Compiler::string(bool) {
 void Compiler::namedVariable(Token name, bool canAssign) {
     OpCode getOp, setOp;
     int arg = -1;
-    Scope::ResolveResult result = _current->resolveLocal(name, arg);
+    CompilerContext::ResolveResult result = _current->resolveLocal(name, arg);
     switch (result) {
-        case Scope::ResolveResult::Local:
+        case CompilerContext::ResolveResult::Local:
             getOp = OpCode::GetLocal;
             setOp = OpCode::SetLocal;
             break;
-        case Scope::ResolveResult::Global:
+        case CompilerContext::ResolveResult::Global:
             arg = identifierConstant(&name);
             getOp = OpCode::GetGlobal;
             setOp = OpCode::SetGlobal;
             break;
-        case Scope::ResolveResult::Uninitialized:
+        case CompilerContext::ResolveResult::Uninitialized:
             error("Can't read local variable in its own initializer.");
             break;
     }
@@ -335,7 +334,7 @@ void Compiler::addLocal(const Token &name) {
 }
 
 void Compiler::declareVariable() {
-    if (_current->isGlobal()) return;
+    if (_current->inGlobalScope()) return;
 
     Token &name = _parser.previous;
     if (_current->hasLocal(name)) {
@@ -349,13 +348,13 @@ uint8_t Compiler::parseVariable(const char *errorMessage) {
     consume(TokenType::Identifier, errorMessage);
 
     declareVariable();
-    if (!_current->isGlobal()) return 0;
+    if (!_current->inGlobalScope()) return 0;
 
     return identifierConstant(&_parser.previous);
 }
 
 void Compiler::defineVariable(uint8_t global) {
-    if (!_current->isGlobal()) {
+    if (!_current->inGlobalScope()) {
         _current->markLastLocalInitialized();
         return;
     }
@@ -453,8 +452,8 @@ void Compiler::forStatement() {
     int loopStart = _loopStart;
     int loopScopeDepth = _loopScopeDepth;
     std::vector<int> loopBreakJumps = std::move(_loopBreakJumps);
-    _loopStart = currentChunk()->count();
-    _loopScopeDepth = _current->depth();
+    _loopStart = currentChunk().count();
+    _loopScopeDepth = _current->scopeDepth();
 
     int exitJump = -1;
     if (!match(TokenType::Semicolon)) {
@@ -466,7 +465,7 @@ void Compiler::forStatement() {
 
     if (!match(TokenType::RightParen)) {
         int bodyJump = emitJump(OpCode::Jump);
-        int incrementStart = currentChunk()->count();
+        int incrementStart = currentChunk().count();
         expression();
         emitByte(OpCode::Pop);
         consume(TokenType::RightParen, "Expect ')' after for clauses.");
@@ -524,8 +523,8 @@ void Compiler::whileStatement() {
     int loopStart = _loopStart;
     int loopScopeDepth = _loopScopeDepth;
     std::vector<int> loopBreakJumps = std::move(_loopBreakJumps);
-    _loopStart = currentChunk()->count();
-    _loopScopeDepth = _current->depth();
+    _loopStart = currentChunk().count();
+    _loopScopeDepth = _current->scopeDepth();
 
     consume(TokenType::LeftParen, "Expect '(' after 'while'.");
     expression();
@@ -610,7 +609,7 @@ void Compiler::errorAt(const Token &token, const char *message) {
     fprintf(stderr, "[line %d] Error", token.line);
 
     if (token.type == TokenType::Eof) {
-        fprintf(stderr, " at end");
+        fprintf(stderr, " at endScope");
     } else if (token.type == TokenType::Error) {
         // nothing
     } else {

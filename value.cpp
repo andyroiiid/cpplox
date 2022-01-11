@@ -13,7 +13,9 @@ Value::Value(const char *chars, int length) : Value(ObjString::create(chars, len
 
 ObjType Value::objType() const { return asObj()->type; }
 
-bool Value::isString() const { return isObj() && objType() == ObjType::String; }
+bool Value::isString() const { return isObjType(ObjType::String); }
+
+bool Value::isFunction() const { return isObjType(ObjType::Function); }
 
 void Value::print() const {
     switch (_type) {

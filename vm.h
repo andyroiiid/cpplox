@@ -5,9 +5,26 @@
 #ifndef CPPLOX_VM_H
 #define CPPLOX_VM_H
 
+#include <stack>
+
 #include "chunk.h"
+#include "object.h"
 #include "singleton.h"
 #include "table.h"
+
+struct CallFrame {
+    ObjFunction *function = nullptr;
+    const uint8_t *ip = nullptr;
+
+    inline Value &operator[](int slot) { return _stack[_stackOffset + slot]; }
+
+    CallFrame(ObjFunction *function, std::vector<Value> &stack, int stackOffset)
+            : function(function), ip(function->chunk.code()), _stack(stack), _stackOffset(stackOffset) {}
+
+private:
+    std::vector<Value> &_stack;
+    int _stackOffset;
+};
 
 class VM final : public Singleton<VM> {
 public:
@@ -34,14 +51,15 @@ private:
 
     InterpretResult run();
 
-    inline uint8_t readByte() { return *_ip++; }
+    inline uint8_t readByte() { return *_frames.top().ip++; }
 
     inline uint16_t readShort() {
-        _ip += 2;
-        return static_cast<uint16_t>((_ip[-2] << 8) | _ip[-1]);
+        CallFrame &currentFrame = _frames.top();
+        currentFrame.ip += 2;
+        return static_cast<uint16_t>((currentFrame.ip[-2] << 8) | currentFrame.ip[-1]);
     }
 
-    inline Value readConstant() { return _chunk.getConstant(readByte()); }
+    inline Value readConstant() { return _frames.top().function->chunk.getConstant(readByte()); }
 
     inline ObjString *readString() { return readConstant().asString(); }
 
@@ -55,8 +73,7 @@ private:
 
     [[nodiscard]] inline Value peek(int distance) const { return _stack[_stack.size() - 1 - distance]; }
 
-    Chunk _chunk;
-    const uint8_t *_ip = nullptr;
+    std::stack<CallFrame> _frames;
     std::vector<Value> _stack;
     Table _globals;
     Table _strings;

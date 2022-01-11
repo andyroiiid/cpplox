@@ -6,6 +6,12 @@
 
 #include "vm.h"
 
+Obj::Obj(ObjType type, bool manualAddToVM) : type(type) {
+    if (!manualAddToVM) {
+        addToVM();
+    }
+}
+
 void Obj::addToVM() {
     auto &objects = VM::instance().objects();
     next = objects;
@@ -15,7 +21,10 @@ void Obj::addToVM() {
 void Obj::print() const {
     switch (type) {
         case ObjType::String:
-            printf("%s", reinterpret_cast<const ObjString *>(this)->chars());
+            reinterpret_cast<const ObjString *>(this)->doPrint();
+            break;
+        case ObjType::Function:
+            reinterpret_cast<const ObjFunction *>(this)->doPrint();
             break;
     }
 }
@@ -24,6 +33,9 @@ void Obj::free(Obj *obj) {
     switch (obj->type) {
         case ObjType::String:
             ObjString::free(reinterpret_cast<ObjString *>(obj));
+            break;
+        case ObjType::Function:
+            delete reinterpret_cast<ObjFunction *>(obj);
             break;
     }
 }
@@ -42,7 +54,6 @@ ObjString *ObjString::create(const char *chars, int length) {
     new(buf) ObjString(chars, length, h);
     auto string = reinterpret_cast<ObjString *>(buf);
 
-    string->addToVM();
     strings.set(string, Value());
     return string;
 }
@@ -69,6 +80,10 @@ void ObjString::free(ObjString *string) {
     delete[] reinterpret_cast<char *>(string);
 }
 
+void ObjString::doPrint() const {
+    printf("%s", chars());
+}
+
 uint32_t ObjString::hash(const char *key, int length) {
     uint32_t hash = 2166136261u;
     for (int i = 0; i < length; i++) {
@@ -86,11 +101,19 @@ ObjString::ObjString(const char *chars, int length, uint32_t hash) : Obj(ObjType
     _hash = hash;
 }
 
-ObjString::ObjString(const ObjString *a, const ObjString *b) : Obj(ObjType::String) {
+ObjString::ObjString(const ObjString *a, const ObjString *b) : Obj(ObjType::String, true) {
     char *buf = reinterpret_cast<char *>(this) + sizeof(ObjString);
     _length = a->_length + b->_length;
     memcpy(buf, a->chars(), a->_length);
     memcpy(buf + a->_length, b->chars(), b->_length);
     buf[_length] = '\0';
     _hash = hash(buf, _length);
+}
+
+void ObjFunction::doPrint() const {
+    if (name == nullptr) {
+        printf("<script>");
+        return;
+    }
+    printf("<fn %s>", name->chars());
 }

@@ -7,12 +7,15 @@
 
 #include <cstdint>
 
+#include "chunk.h"
+
 enum class ObjType {
     String,
+    Function,
 };
 
 struct Obj {
-    inline explicit Obj(ObjType type) : type(type) {}
+    explicit Obj(ObjType type, bool manualAddToVM = false);
 
     void addToVM();
 
@@ -32,6 +35,8 @@ public:
 
     static void free(ObjString *string);
 
+    void doPrint() const;
+
     [[nodiscard]] inline const char *chars() const {
         return reinterpret_cast<const char *>(this) + sizeof(ObjString);
     }
@@ -49,6 +54,16 @@ private:
 
     int _length = 0;
     uint32_t _hash = 0;
+};
+
+struct ObjFunction : Obj {
+    int arity = 0;
+    Chunk chunk;
+    ObjString *name = nullptr;
+
+    ObjFunction() : Obj(ObjType::Function) {}
+
+    void doPrint() const;
 };
 
 #endif //CPPLOX_OBJECT_H

@@ -7,12 +7,14 @@
 
 #include <vector>
 
+#include "compiler_context.h"
+#include "object.h"
 #include "scanner.h"
 #include "token.h"
 
 class Compiler {
 public:
-    bool compile(const char *source, Chunk *chunk);
+    ObjFunction *compile(const char *source);
 
 private:
     struct Parser {
@@ -22,7 +24,7 @@ private:
         bool panicMode = false;
     };
 
-    Chunk *currentChunk();
+    inline Chunk &currentChunk() { return _current->function()->chunk; }
 
     void advance();
 
@@ -50,9 +52,9 @@ private:
 
     void patchJump(int offset);
 
-    void beginCompile(Scope *scope);
+    void beginCompile(CompilerContext *context);
 
-    void endCompile();
+    ObjFunction *endCompile();
 
     void beginScope();
 
@@ -138,8 +140,7 @@ private:
 
     Scanner _scanner;
     Parser _parser;
-    Chunk *_compilingChunk = nullptr;
-    Scope *_current = nullptr;
+    CompilerContext *_current = nullptr;
 
     int _loopStart = -1;
     int _loopScopeDepth = 0;
