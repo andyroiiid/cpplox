@@ -15,8 +15,8 @@ const char *toString(TokenType type) {
             // literals
             "IDENTIFIER", "STRING", "NUMBER",
             // keywords
-            "AND", "CLASS", "ELSE", "FALSE", "FOR", "FUN", "IF", "NIL", "OR",
-            "PRINT", "RETURN", "SUPER", "THIS", "TRUE", "VAR", "WHILE",
+            "AND", "BREAK", "CLASS", "CONTINUE", "ELSE", "FALSE", "FOR", "FUN", "IF",
+            "NIL", "OR", "PRINT", "RETURN", "SUPER", "THIS", "TRUE", "VAR", "WHILE",
             // other
             "ERROR", "EOF"
     };
@@ -140,8 +140,18 @@ TokenType Scanner::identifierType() {
     switch (*_start) {
         case 'a':
             return checkKeyword(1, 2, "nd", TokenType::And);
+        case 'b':
+            return checkKeyword(1, 4, "reak", TokenType::Break);
         case 'c':
-            return checkKeyword(1, 4, "lass", TokenType::Class);
+            if (_current - _start > 1) {
+                switch (_start[1]) {
+                    case 'l':
+                        return checkKeyword(2, 3, "ass", TokenType::Class);
+                    case 'o':
+                        return checkKeyword(2, 6, "ntinue", TokenType::Continue);
+                }
+            }
+            break;
         case 'e':
             return checkKeyword(1, 3, "lse", TokenType::Else);
         case 'f':

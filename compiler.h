@@ -113,6 +113,10 @@ private:
 
     void expressionStatement();
 
+    void breakStatement();
+
+    void continueStatement();
+
     void forStatement();
 
     void ifStatement();
@@ -137,6 +141,9 @@ private:
     Parser _parser;
     Chunk *_compilingChunk = nullptr;
     Scope *_current = nullptr;
+
+    int _loopStart = -1;
+    int _loopScopeDepth = 0;
 };
 
 #endif //CPPLOX_COMPILER_H

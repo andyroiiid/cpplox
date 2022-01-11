@@ -17,8 +17,8 @@ enum class TokenType {
     // literals
     Identifier, String, Number,
     // keywords
-    And, Class, Else, False, For, Fun, If, Nil, Or,
-    Print, Return, Super, This, True, Var, While,
+    And, Break, Class, Continue, Else, False, For, Fun, If,
+    Nil, Or, Print, Return, Super, This, True, Var, While,
     // other
     Error, Eof
 };

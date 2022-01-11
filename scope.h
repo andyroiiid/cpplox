@@ -31,6 +31,10 @@ public:
 
     inline void markLastLocalInitialized() { lastLocal().depth = _depth; }
 
+    [[nodiscard]] inline int depth() const { return _depth; }
+
+    int numLocalsTill(int targetDepth);
+
 private:
     static constexpr int UINT8_COUNT = UINT8_MAX + 1;
 

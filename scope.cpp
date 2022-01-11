@@ -9,15 +9,10 @@ void Scope::begin() {
 }
 
 int Scope::end() {
+    int numLocalsToDiscard = numLocalsTill(_depth - 1);
+    _count -= numLocalsToDiscard;
     _depth--;
-
-    int count = 0;
-    while (_count > 0 && lastLocal().depth > _depth) {
-        count++;
-        _count--;
-    }
-
-    return count;
+    return numLocalsToDiscard;
 }
 
 bool Scope::addLocal(const Token &name) {
@@ -56,4 +51,12 @@ Scope::ResolveResult Scope::resolveLocal(const Token &name, int &slot) const {
         }
     }
     return ResolveResult::Global;
+}
+
+int Scope::numLocalsTill(int targetDepth) {
+    int count = 0;
+    for (int i = _count - 1; i >= 0 && _locals[i].depth > targetDepth; i--) {
+        count++;
+    }
+    return count;
 }

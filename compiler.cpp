@@ -274,7 +274,9 @@ const Compiler::ParseRule *Compiler::getRule(TokenType type) {
             {&Compiler::string,   nullptr,               Precedence::None}, // string
             {&Compiler::number,   nullptr,               Precedence::None}, // number
             {nullptr,             &Compiler::logicalAnd, Precedence::And}, // and
+            {nullptr,             nullptr,               Precedence::None}, // break
             {nullptr,             nullptr,               Precedence::None}, // class
+            {nullptr,             nullptr,               Precedence::None}, // continue
             {nullptr,             nullptr,               Precedence::None}, // else
             {&Compiler::literal,  nullptr,               Precedence::None}, // false
             {nullptr,             nullptr,               Precedence::None}, // for
@@ -400,6 +402,25 @@ void Compiler::expressionStatement() {
     emitByte(OpCode::Pop);
 }
 
+void Compiler::breakStatement() {
+    error("'break' is not implemented yet.");
+}
+
+void Compiler::continueStatement() {
+    if (_loopStart == -1) {
+        error("Can't use 'continue' outside of a loop.");
+    }
+
+    consume(TokenType::Semicolon, "Expect';' after 'continue'.");
+
+    int numLocals = _current->numLocalsTill(_loopScopeDepth);
+    for (int i = 0; i < numLocals; i++) {
+        emitByte(OpCode::Pop);
+    }
+
+    emitLoop(_loopStart);
+}
+
 void Compiler::forStatement() {
     beginScope();
 
@@ -412,7 +433,11 @@ void Compiler::forStatement() {
         expressionStatement();
     }
 
-    int loopStart = currentChunk()->count();
+    int surroundingLoopStart = _loopStart;
+    int surroundingLoopScopeDepth = _loopScopeDepth;
+    _loopStart = currentChunk()->count();
+    _loopScopeDepth = _current->depth();
+
     int exitJump = -1;
     if (!match(TokenType::Semicolon)) {
         expression();
@@ -428,18 +453,21 @@ void Compiler::forStatement() {
         emitByte(OpCode::Pop);
         consume(TokenType::RightParen, "Expect ')' after for clauses.");
 
-        emitLoop(loopStart);
-        loopStart = incrementStart;
+        emitLoop(_loopStart);
+        _loopStart = incrementStart;
         patchJump(bodyJump);
     }
 
     statement();
-    emitLoop(loopStart);
+    emitLoop(_loopStart);
 
     if (exitJump != -1) {
         patchJump(exitJump);
         emitByte(OpCode::Pop);
     }
+
+    _loopStart = surroundingLoopStart;
+    _loopScopeDepth = surroundingLoopScopeDepth;
 
     endScope();
 }
@@ -468,7 +496,11 @@ void Compiler::printStatement() {
 }
 
 void Compiler::whileStatement() {
-    int loopStart = currentChunk()->count();
+    int surroundingLoopStart = _loopStart;
+    int surroundingLoopScopeDepth = _loopScopeDepth;
+    _loopStart = currentChunk()->count();
+    _loopScopeDepth = _current->depth();
+
     consume(TokenType::LeftParen, "Expect '(' after 'while'.");
     expression();
     consume(TokenType::RightParen, "Expect ')' after condition.");
@@ -476,10 +508,13 @@ void Compiler::whileStatement() {
     int exitJump = emitJump(OpCode::JumpIfFalse);
     emitByte(OpCode::Pop);
     statement();
-    emitLoop(loopStart);
+    emitLoop(_loopStart);
 
     patchJump(exitJump);
     emitByte(OpCode::Pop);
+
+    _loopStart = surroundingLoopStart;
+    _loopScopeDepth = surroundingLoopScopeDepth;
 }
 
 void Compiler::synchronize() {
@@ -516,6 +551,10 @@ void Compiler::declaration() {
 void Compiler::statement() {
     if (match(TokenType::Print)) {
         printStatement();
+    } else if (match(TokenType::Break)) {
+        breakStatement();
+    } else if (match(TokenType::Continue)) {
+        continueStatement();
     } else if (match(TokenType::For)) {
         forStatement();
     } else if (match(TokenType::If)) {
