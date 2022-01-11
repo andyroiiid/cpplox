@@ -5,6 +5,7 @@
 #include "value.h"
 
 #include <cstdio>
+#include <cmath>
 
 void Value::print() const {
     switch (_type) {
@@ -48,6 +49,11 @@ Value Value::operator*(const Value &rhs) const {
 Value Value::operator/(const Value &rhs) const {
     if (_type != rhs._type || !isNumber()) return {};
     return Value(asNumber() / rhs.asNumber());
+}
+
+Value Value::operator%(const Value &rhs) const {
+    if (_type != rhs._type || !isNumber()) return {};
+    return Value(fmod(asNumber(), rhs.asNumber()));
 }
 
 bool Value::operator==(const Value &rhs) const {

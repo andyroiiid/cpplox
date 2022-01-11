@@ -31,6 +31,7 @@ enum class OpCode : uint8_t {
     Subtract,
     Multiply,
     Divide,
+    Modulo,
     Not,
     Negate,
     Print,

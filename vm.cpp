@@ -214,6 +214,17 @@ VM::InterpretResult VM::run() {
                 push(result);
                 break;
             }
+            case OpCode::Modulo: {
+                Value b = pop();
+                Value a = pop();
+                Value result = a % b;
+                if (result.isNil()) {
+                    runtimeError("Operand must be numbers.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
+                break;
+            }
             case OpCode::Not: {
                 push(Value(pop().isFalsey()));
                 break;

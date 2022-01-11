@@ -1,1 +1,2 @@
-print false != nil;
+var a = 4;
+print a % 2 == 0 and "even" or "odd";

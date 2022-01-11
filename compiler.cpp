@@ -152,6 +152,9 @@ void Compiler::binary(bool) {
         case TokenType::Slash:
             emitByte(OpCode::Divide);
             break;
+        case TokenType::Percent:
+            emitByte(OpCode::Modulo);
+            break;
         default:
             break;
     }
@@ -248,6 +251,7 @@ const Compiler::ParseRule *Compiler::getRule(TokenType type) {
             {nullptr,             nullptr,               Precedence::None}, // semicolon
             {nullptr,             &Compiler::binary,     Precedence::Factor}, // slash
             {nullptr,             &Compiler::binary,     Precedence::Factor}, // star
+            {nullptr,             &Compiler::binary,     Precedence::Factor}, // percent
             {&Compiler::unary,    nullptr,               Precedence::None}, // bang
             {nullptr,             &Compiler::binary,     Precedence::Equality}, // bang equal
             {nullptr,             nullptr,               Precedence::None}, // equal

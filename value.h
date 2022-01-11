@@ -56,6 +56,8 @@ public:
 
     Value operator/(const Value &rhs) const;
 
+    Value operator%(const Value &rhs) const;
+
     bool operator==(const Value &rhs) const;
 
     inline bool operator!=(const Value &rhs) const { return !operator==(rhs); }

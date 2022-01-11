@@ -82,6 +82,8 @@ int Chunk::disassembleInstruction(int offset) const {
             return simpleInstruction("OP_MULTIPLY", offset);
         case OpCode::Divide:
             return simpleInstruction("OP_DIVIDE", offset);
+        case OpCode::Modulo:
+            return simpleInstruction("OP_MODULO", offset);
         case OpCode::Not:
             return simpleInstruction("OP_NOT", offset);
         case OpCode::Negate:

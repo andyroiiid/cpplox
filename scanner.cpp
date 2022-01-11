@@ -8,7 +8,7 @@ const char *toString(TokenType type) {
     static const char *STRINGS[]{
             // single-character tokens
             "LEFT_PAREN", "RIGHT_PAREN", "LEFT_BRACE", "RIGHT_BRACE",
-            "COMMA", "DOT", "MINUS", "PLUS", "SEMICOLON", "SLASH", "STAR",
+            "COMMA", "DOT", "MINUS", "PLUS", "SEMICOLON", "SLASH", "STAR", "PERCENT",
             // one or two character tokens
             "BANG", "BANG_EQUAL", "EQUAL", "EQUAL_EQUAL",
             "GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL",
@@ -66,6 +66,8 @@ Token Scanner::scan() {
             return makeToken(TokenType::Slash);
         case '*':
             return makeToken(TokenType::Star);
+        case '%':
+            return makeToken(TokenType::Percent);
         case '!':
             return makeToken(match('=') ? TokenType::BangEqual : TokenType::Bang);
         case '=':
