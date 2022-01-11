@@ -6,13 +6,17 @@
 
 #include <cstdio>
 
-void Chunk::write(uint8_t byte, size_t line) {
+void Chunk::write(uint8_t byte, int line) {
     _code.push_back(byte);
     _lines.push_back(line);
 }
 
-size_t Chunk::addConstant(Value value) {
-    size_t index = _constants.size();
+void Chunk::patch(int offset, uint8_t byte) {
+    _code[offset] = byte;
+}
+
+int Chunk::addConstant(Value value) {
+    int index = static_cast<int>(_constants.size());
     _constants.push_back(value);
     return index;
 }
@@ -23,18 +27,18 @@ Value Chunk::getConstant(uint8_t index) {
 
 void Chunk::disassemble(const std::string &name) const {
     printf("== %s ==\n", name.c_str());
-    size_t offset = 0;
+    int offset = 0;
     while (offset < _code.size()) {
         offset = disassembleInstruction(offset);
     }
 }
 
-size_t Chunk::disassembleInstruction(size_t offset) const {
-    printf("%04zu ", offset);
+int Chunk::disassembleInstruction(int offset) const {
+    printf("%04d ", offset);
     if (offset > 0 && _lines[offset] == _lines[offset - 1]) {
         printf("   | ");
     } else {
-        printf("%4zu ", _lines[offset]);
+        printf("%4d ", _lines[offset]);
     }
     auto instruction = static_cast<OpCode>(_code[offset]);
     switch (instruction) {
@@ -78,6 +82,10 @@ size_t Chunk::disassembleInstruction(size_t offset) const {
             return simpleInstruction("OP_NEGATE", offset);
         case OpCode::Print:
             return simpleInstruction("OP_PRINT", offset);
+        case OpCode::Jump:
+            return jumpInstruction("OP_JUMP", 1, offset);
+        case OpCode::JumpIfFalse:
+            return jumpInstruction("OP_JUMP_IF_FALSE", 1, offset);
         case OpCode::Return:
             return simpleInstruction("OP_RETURN", offset);
         default:
@@ -86,18 +94,25 @@ size_t Chunk::disassembleInstruction(size_t offset) const {
     }
 }
 
-size_t Chunk::simpleInstruction(const std::string &name, size_t offset) {
+int Chunk::simpleInstruction(const std::string &name, int offset) {
     printf("%s\n", name.c_str());
     return offset + 1;
 }
 
-size_t Chunk::byteInstruction(const std::string &name, size_t offset) const {
+int Chunk::byteInstruction(const std::string &name, int offset) const {
     uint8_t slot = _code[offset + 1];
     printf("%-16s %4d\n", name.c_str(), slot);
     return offset + 2;
 }
 
-size_t Chunk::constantInstruction(const std::string &name, size_t offset) const {
+int Chunk::jumpInstruction(const std::string &name, int sign, int offset) const {
+    auto jump = (uint16_t) (_code[offset + 1] << 8);
+    jump |= _code[offset + 2];
+    printf("%-16s %4d -> %d\n", name.c_str(), offset, offset + 3 + sign * jump);
+    return offset + 3;
+}
+
+int Chunk::constantInstruction(const std::string &name, int offset) const {
     uint8_t constant = _code[offset + 1];
     printf("%-16s %4d '", name.c_str(), constant);
     _constants[constant].print();

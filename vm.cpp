@@ -38,9 +38,9 @@ void VM::runtimeError(const char *format, ...) const {
     (va_end(args));
     fprintf(stderr, "\n");
 
-    size_t instruction = _ip - _chunk.code() - 1;
-    size_t line = _chunk.getInstructionLine(instruction);
-    fprintf(stderr, "[line %llu] in script\n", line);
+    int instruction = static_cast<int>(_ip - _chunk.code() - 1);
+    int line = _chunk.getInstructionLine(instruction);
+    fprintf(stderr, "[line %d] in script\n", line);
 }
 
 VM::InterpretResult VM::run() {
@@ -53,7 +53,7 @@ VM::InterpretResult VM::run() {
             printf("]");
         }
         printf("\n");
-        _chunk.disassembleInstruction(_ip - _chunk.code());
+        _chunk.disassembleInstruction(static_cast<int>(_ip - _chunk.code()));
 #endif
 
         auto instruction = static_cast<OpCode>(readByte());
@@ -202,6 +202,16 @@ VM::InterpretResult VM::run() {
             case OpCode::Print: {
                 pop().print();
                 printf("\n");
+                break;
+            }
+            case OpCode::Jump: {
+                uint16_t offset = readShort();
+                _ip += offset;
+                break;
+            }
+            case OpCode::JumpIfFalse: {
+                uint16_t offset = readShort();
+                if (peek(0).isFalsey()) _ip += offset;
                 break;
             }
             case OpCode::Return: {

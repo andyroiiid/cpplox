@@ -57,12 +57,19 @@ void Compiler::emitBytes(OpCode opCode, uint8_t byte) {
     emitByte(byte);
 }
 
+int Compiler::emitJump(OpCode instruction) {
+    emitByte(instruction);
+    emitByte(0xFF);
+    emitByte(0xFF);
+    return currentChunk()->count() - 2;
+}
+
 void Compiler::emitReturn() {
     emitByte(OpCode::Return);
 }
 
 uint8_t Compiler::makeConstant(Value value) {
-    size_t constant = currentChunk()->addConstant(value);
+    int constant = currentChunk()->addConstant(value);
     if (constant > UINT8_MAX) {
         error("Too many constants in one chunk.");
         return 0;
@@ -72,6 +79,17 @@ uint8_t Compiler::makeConstant(Value value) {
 
 void Compiler::emitConstant(Value value) {
     emitBytes(OpCode::Constant, makeConstant(value));
+}
+
+void Compiler::patchJump(int offset) {
+    int jump = currentChunk()->count() - offset - 2;
+
+    if (jump > UINT16_MAX) {
+        error("Too much code to jump over.");
+    }
+
+    currentChunk()->patch(offset, (jump >> 8) & 0xFF);
+    currentChunk()->patch(offset + 1, jump & 0xFF);
 }
 
 void Compiler::beginCompile(Scope *scope) {
@@ -222,46 +240,46 @@ void Compiler::unary(bool) {
 
 const Compiler::ParseRule *Compiler::getRule(TokenType type) {
     static const ParseRule RULES[]{
-            {&Compiler::grouping, nullptr,           Precedence::None}, //left paren
-            {nullptr,             nullptr,           Precedence::None}, // right paren
-            {nullptr,             nullptr,           Precedence::None}, // left brace
-            {nullptr,             nullptr,           Precedence::None}, // right brace
-            {nullptr,             nullptr,           Precedence::None}, // comma
-            {nullptr,             nullptr,           Precedence::None}, // dot
-            {&Compiler::unary,    &Compiler::binary, Precedence::Term}, // minus
-            {nullptr,             &Compiler::binary, Precedence::Term}, // plus
-            {nullptr,             nullptr,           Precedence::None}, // semicolon
-            {nullptr,             &Compiler::binary, Precedence::Factor}, // slash
-            {nullptr,             &Compiler::binary, Precedence::Factor}, // star
-            {&Compiler::unary,    nullptr,           Precedence::None}, // bang
-            {nullptr,             &Compiler::binary, Precedence::Equality}, // bang equal
-            {nullptr,             nullptr,           Precedence::None}, // equal
-            {nullptr,             &Compiler::binary, Precedence::Equality}, // equal equal
-            {nullptr,             &Compiler::binary, Precedence::Comparison}, // greater
-            {nullptr,             &Compiler::binary, Precedence::Comparison}, // greater equal
-            {nullptr,             &Compiler::binary, Precedence::Comparison}, // less
-            {nullptr,             &Compiler::binary, Precedence::Comparison}, // less equal
-            {&Compiler::variable, nullptr,           Precedence::None}, // identifier
-            {&Compiler::string,   nullptr,           Precedence::None}, // string
-            {&Compiler::number,   nullptr,           Precedence::None}, // number
-            {nullptr,             nullptr,           Precedence::None}, // and
-            {nullptr,             nullptr,           Precedence::None}, // class
-            {nullptr,             nullptr,           Precedence::None}, // else
-            {&Compiler::literal,  nullptr,           Precedence::None}, // false
-            {nullptr,             nullptr,           Precedence::None}, // for
-            {nullptr,             nullptr,           Precedence::None}, // fun
-            {nullptr,             nullptr,           Precedence::None}, // if
-            {&Compiler::literal,  nullptr,           Precedence::None}, // nil
-            {nullptr,             nullptr,           Precedence::None}, // or
-            {nullptr,             nullptr,           Precedence::None}, // print
-            {nullptr,             nullptr,           Precedence::None}, // return
-            {nullptr,             nullptr,           Precedence::None}, // super
-            {nullptr,             nullptr,           Precedence::None}, // this
-            {&Compiler::literal,  nullptr,           Precedence::None}, // true
-            {nullptr,             nullptr,           Precedence::None}, // var
-            {nullptr,             nullptr,           Precedence::None}, // while
-            {nullptr,             nullptr,           Precedence::None}, // error
-            {nullptr,             nullptr,           Precedence::None}, // eof
+            {&Compiler::grouping, nullptr,               Precedence::None}, //left paren
+            {nullptr,             nullptr,               Precedence::None}, // right paren
+            {nullptr,             nullptr,               Precedence::None}, // left brace
+            {nullptr,             nullptr,               Precedence::None}, // right brace
+            {nullptr,             nullptr,               Precedence::None}, // comma
+            {nullptr,             nullptr,               Precedence::None}, // dot
+            {&Compiler::unary,    &Compiler::binary,     Precedence::Term}, // minus
+            {nullptr,             &Compiler::binary,     Precedence::Term}, // plus
+            {nullptr,             nullptr,               Precedence::None}, // semicolon
+            {nullptr,             &Compiler::binary,     Precedence::Factor}, // slash
+            {nullptr,             &Compiler::binary,     Precedence::Factor}, // star
+            {&Compiler::unary,    nullptr,               Precedence::None}, // bang
+            {nullptr,             &Compiler::binary,     Precedence::Equality}, // bang equal
+            {nullptr,             nullptr,               Precedence::None}, // equal
+            {nullptr,             &Compiler::binary,     Precedence::Equality}, // equal equal
+            {nullptr,             &Compiler::binary,     Precedence::Comparison}, // greater
+            {nullptr,             &Compiler::binary,     Precedence::Comparison}, // greater equal
+            {nullptr,             &Compiler::binary,     Precedence::Comparison}, // less
+            {nullptr,             &Compiler::binary,     Precedence::Comparison}, // less equal
+            {&Compiler::variable, nullptr,               Precedence::None}, // identifier
+            {&Compiler::string,   nullptr,               Precedence::None}, // string
+            {&Compiler::number,   nullptr,               Precedence::None}, // number
+            {nullptr,             &Compiler::logicalAnd, Precedence::And}, // and
+            {nullptr,             nullptr,               Precedence::None}, // class
+            {nullptr,             nullptr,               Precedence::None}, // else
+            {&Compiler::literal,  nullptr,               Precedence::None}, // false
+            {nullptr,             nullptr,               Precedence::None}, // for
+            {nullptr,             nullptr,               Precedence::None}, // fun
+            {nullptr,             nullptr,               Precedence::None}, // if
+            {&Compiler::literal,  nullptr,               Precedence::None}, // nil
+            {nullptr,             &Compiler::logicalOr,  Precedence::Or}, // or
+            {nullptr,             nullptr,               Precedence::None}, // print
+            {nullptr,             nullptr,               Precedence::None}, // return
+            {nullptr,             nullptr,               Precedence::None}, // super
+            {nullptr,             nullptr,               Precedence::None}, // this
+            {&Compiler::literal,  nullptr,               Precedence::None}, // true
+            {nullptr,             nullptr,               Precedence::None}, // var
+            {nullptr,             nullptr,               Precedence::None}, // while
+            {nullptr,             nullptr,               Precedence::None}, // error
+            {nullptr,             nullptr,               Precedence::None}, // eof
     };
     return RULES + static_cast<int>(type);
 }
@@ -327,6 +345,22 @@ void Compiler::defineVariable(uint8_t global) {
     emitBytes(OpCode::DefineGlobal, global);
 }
 
+void Compiler::logicalAnd(bool) {
+    int endJump = emitJump(OpCode::JumpIfFalse);
+    emitByte(OpCode::Pop);
+    parsePrecedence(Precedence::And);
+    patchJump(endJump);
+}
+
+void Compiler::logicalOr(bool) {
+    int elseJump = emitJump(OpCode::JumpIfFalse);
+    int endJump = emitJump(OpCode::Jump);
+    patchJump(elseJump);
+    emitByte(OpCode::Pop);
+    parsePrecedence(Precedence::Or);
+    patchJump(endJump);
+}
+
 void Compiler::expression() {
     parsePrecedence(Precedence::Assignment);
 }
@@ -355,6 +389,23 @@ void Compiler::expressionStatement() {
     expression();
     consume(TokenType::Semicolon, "Expect ';' after expression.");
     emitByte(OpCode::Pop);
+}
+
+void Compiler::ifStatement() {
+    consume(TokenType::LeftParen, "Expect '(' after 'if'.");
+    expression();
+    consume(TokenType::RightParen, "Expect ')' after condition.");
+
+    int thenJump = emitJump(OpCode::JumpIfFalse);
+    emitByte(OpCode::Pop);
+    statement();
+    int elseJump = emitJump(OpCode::Jump);
+    patchJump(thenJump);
+    emitByte(OpCode::Pop);
+    if (match(TokenType::Else)) {
+        statement();
+    }
+    patchJump(elseJump);
 }
 
 void Compiler::printStatement() {
@@ -397,6 +448,8 @@ void Compiler::declaration() {
 void Compiler::statement() {
     if (match(TokenType::Print)) {
         printStatement();
+    } else if (match(TokenType::If)) {
+        ifStatement();
     } else if (match(TokenType::LeftBrace)) {
         beginScope();
         block();
@@ -410,7 +463,7 @@ void Compiler::errorAt(const Token &token, const char *message) {
     if (_parser.panicMode) return;
     _parser.panicMode = true;
 
-    fprintf(stderr, "[line %zu] Error", token.line);
+    fprintf(stderr, "[line %d] Error", token.line);
 
     if (token.type == TokenType::Eof) {
         fprintf(stderr, " at end");

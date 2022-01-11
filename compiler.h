@@ -39,11 +39,15 @@ private:
 
     void emitBytes(OpCode opCode, uint8_t byte);
 
+    int emitJump(OpCode instruction);
+
     void emitReturn();
 
     uint8_t makeConstant(Value value);
 
     void emitConstant(Value value);
+
+    void patchJump(int offset);
 
     void beginCompile(Scope *scope);
 
@@ -95,6 +99,10 @@ private:
 
     void defineVariable(uint8_t global);
 
+    void logicalAnd(bool canAssign);
+
+    void logicalOr(bool canAssign);
+
     void expression();
 
     void block();
@@ -102,6 +110,8 @@ private:
     void varDeclaration();
 
     void expressionStatement();
+
+    void ifStatement();
 
     void printStatement();
 

@@ -29,7 +29,7 @@ struct Token {
     TokenType type = TokenType::Error;
     const char *start = nullptr;
     int length = 0;
-    size_t line = 0;
+    int line = 0;
 
     [[nodiscard]] bool lexemeEqual(const Token &rhs) const;
 };
@@ -77,7 +77,7 @@ private:
 
     const char *_start = nullptr;
     const char *_current = nullptr;
-    size_t _line = 0;
+    int _line = 0;
 };
 
 #endif //CPPLOX_SCANNER_H

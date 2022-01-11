@@ -36,6 +36,11 @@ private:
 
     inline uint8_t readByte() { return *_ip++; }
 
+    inline uint16_t readShort() {
+        _ip += 2;
+        return static_cast<uint16_t>((_ip[-2] << 8) | _ip[-1]);
+    }
+
     inline Value readConstant() { return _chunk.getConstant(readByte()); }
 
     inline ObjString *readString() { return readConstant().asString(); }

@@ -32,7 +32,7 @@ public:
     inline void markLastLocalInitialized() { lastLocal().depth = _depth; }
 
 private:
-    static constexpr size_t UINT8_COUNT = UINT8_MAX + 1;
+    static constexpr int UINT8_COUNT = UINT8_MAX + 1;
 
     struct Local {
         Token name;

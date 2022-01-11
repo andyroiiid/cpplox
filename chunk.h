@@ -31,34 +31,42 @@ enum class OpCode : uint8_t {
     Not,
     Negate,
     Print,
+    Jump,
+    JumpIfFalse,
     Return,
 };
 
 class Chunk {
 public:
-    void write(uint8_t byte, size_t line);
+    void write(uint8_t byte, int line);
 
-    size_t addConstant(Value value);
+    void patch(int offset, uint8_t byte);
+
+    int addConstant(Value value);
 
     Value getConstant(uint8_t index);
 
     [[nodiscard]] const uint8_t *code() const { return _code.data(); }
 
-    [[nodiscard]] size_t getInstructionLine(size_t instruction) const { return _lines[instruction]; }
+    [[nodiscard]] int count() const { return static_cast<int>(_code.size()); }
+
+    [[nodiscard]] int getInstructionLine(int instruction) const { return _lines[instruction]; }
 
     void disassemble(const std::string &name) const;
 
-    size_t disassembleInstruction(size_t offset) const; // NOLINT(modernize-use-nodiscard)
+    int disassembleInstruction(int offset) const; // NOLINT(modernize-use-nodiscard)
 
 private:
-    static size_t simpleInstruction(const std::string &name, size_t offset);
+    static int simpleInstruction(const std::string &name, int offset);
 
-    [[nodiscard]] size_t byteInstruction(const std::string &name, size_t offset) const;
+    [[nodiscard]] int byteInstruction(const std::string &name, int offset) const;
 
-    [[nodiscard]] size_t constantInstruction(const std::string &name, size_t offset) const;
+    [[nodiscard]] int jumpInstruction(const std::string &name, int sign, int offset) const;
+
+    [[nodiscard]] int constantInstruction(const std::string &name, int offset) const;
 
     std::vector<uint8_t> _code;
-    std::vector<size_t> _lines;
+    std::vector<int> _lines;
     std::vector<Value> _constants;
 };
 
