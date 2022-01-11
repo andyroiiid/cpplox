@@ -9,30 +9,22 @@
 
 #include "compiler_context.h"
 #include "object.h"
-#include "scanner.h"
-#include "token.h"
+#include "parser.h"
 
 class Compiler {
 public:
     ObjFunction *compile(const char *source);
 
 private:
-    struct Parser {
-        Token current;
-        Token previous;
-        bool hadError = false;
-        bool panicMode = false;
-    };
+    inline void advance() { _parser.advance(); }
+
+    inline void consume(TokenType type, const char *message) { _parser.consume(type, message); }
+
+    [[nodiscard]] inline bool check(TokenType type) const { return _parser.check(type); }
+
+    inline bool match(TokenType type) { return _parser.match(type); }
 
     inline Chunk &currentChunk() { return _current->function()->chunk; }
-
-    void advance();
-
-    void consume(TokenType type, const char *message);
-
-    [[nodiscard]] inline bool check(TokenType type) const { return _parser.current.type == type; }
-
-    bool match(TokenType type);
 
     void emitByte(uint8_t byte);
 
@@ -92,7 +84,7 @@ private:
 
     void parsePrecedence(Precedence precedence);
 
-    uint8_t identifierConstant(Token *name);
+    uint8_t identifierConstant(const Token &name);
 
     void addLocal(const Token &name);
 
@@ -126,19 +118,12 @@ private:
 
     void whileStatement();
 
-    void synchronize();
-
     void declaration();
 
     void statement();
 
-    inline void errorAtCurrent(const char *message) { errorAt(_parser.current, message); }
+    inline void error(const char *message) { _parser.error(message); }
 
-    inline void error(const char *message) { errorAt(_parser.previous, message); }
-
-    void errorAt(const Token &token, const char *message);
-
-    Scanner _scanner;
     Parser _parser;
     CompilerContext *_current = nullptr;
 

@@ -11,6 +11,7 @@ add_executable(cpplox
         non_copyable.h
         object.cpp object.h
         op_code.h
+        parser.cpp parser.h
         scanner.cpp scanner.h
         singleton.h
         table.cpp table.h

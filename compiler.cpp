@@ -9,46 +9,22 @@
 #include "value.h"
 
 ObjFunction *Compiler::compile(const char *source) {
-    _scanner = Scanner(source);
-    _parser = Parser();
+    _parser = Parser(source);
     CompilerContext context(FunctionType::Script);
     beginCompile(&context);
 
     advance();
 
-    while (!match(TokenType::Eof)) {
+    while (!_parser.match(TokenType::Eof)) {
         declaration();
     }
 
     ObjFunction *function = endCompile();
-    return _parser.hadError ? nullptr : function;
-}
-
-void Compiler::advance() {
-    _parser.previous = _parser.current;
-    while (true) {
-        _parser.current = _scanner.scan();
-        if (_parser.current.type != TokenType::Error) break;
-        errorAtCurrent(_parser.current.start);
-    }
-}
-
-void Compiler::consume(TokenType type, const char *message) {
-    if (_parser.current.type == type) {
-        advance();
-        return;
-    }
-    errorAtCurrent(message);
-}
-
-bool Compiler::match(TokenType type) {
-    if (!check(type)) return false;
-    advance();
-    return true;
+    return _parser.hadError() ? nullptr : function;
 }
 
 void Compiler::emitByte(uint8_t byte) {
-    currentChunk().write(byte, _parser.previous.line);
+    currentChunk().write(byte, _parser.previousLine());
 }
 
 void Compiler::emitBytes(OpCode opCode, uint8_t byte) {
@@ -110,7 +86,7 @@ ObjFunction *Compiler::endCompile() {
     ObjFunction *function = _current->function();
 
 #ifdef DEBUG_PRINT_CODE
-    if (!_parser.hadError) {
+    if (!_parser.hadError()) {
         ObjString *name = function->name;
         currentChunk().disassemble(name != nullptr ? name->chars() : "<script>");
     }
@@ -131,7 +107,7 @@ void Compiler::endScope() {
 }
 
 void Compiler::binary(bool) {
-    TokenType operatorType = _parser.previous.type;
+    TokenType operatorType = _parser.previousType();
     const ParseRule *rule = getRule(operatorType);
     parsePrecedence(static_cast<Precedence>(static_cast<int>(rule->precedence) + 1));
 
@@ -175,7 +151,7 @@ void Compiler::binary(bool) {
 }
 
 void Compiler::literal(bool) {
-    switch (_parser.previous.type) {
+    switch (_parser.previousType()) {
         case TokenType::False:
             emitByte(OpCode::False);
             break;
@@ -196,12 +172,11 @@ void Compiler::grouping(bool) {
 }
 
 void Compiler::number(bool) {
-    double value = strtod(_parser.previous.start, nullptr);
-    emitConstant(Value(value));
+    emitConstant(_parser.number());
 }
 
 void Compiler::string(bool) {
-    emitConstant(Value(_parser.previous.start + 1, _parser.previous.length - 2));
+    emitConstant(_parser.string());
 }
 
 void Compiler::namedVariable(Token name, bool canAssign) {
@@ -214,7 +189,7 @@ void Compiler::namedVariable(Token name, bool canAssign) {
             setOp = OpCode::SetLocal;
             break;
         case CompilerContext::ResolveResult::Global:
-            arg = identifierConstant(&name);
+            arg = identifierConstant(name);
             getOp = OpCode::GetGlobal;
             setOp = OpCode::SetGlobal;
             break;
@@ -232,11 +207,11 @@ void Compiler::namedVariable(Token name, bool canAssign) {
 }
 
 void Compiler::variable(bool canAssign) {
-    namedVariable(_parser.previous, canAssign);
+    namedVariable(_parser.previous(), canAssign);
 }
 
 void Compiler::unary(bool) {
-    TokenType operatorType = _parser.previous.type;
+    TokenType operatorType = _parser.previousType();
 
     expression();
 
@@ -303,7 +278,7 @@ const Compiler::ParseRule *Compiler::getRule(TokenType type) {
 
 void Compiler::parsePrecedence(Precedence precedence) {
     advance();
-    ParseFn prefixRule = getRule(_parser.previous.type)->prefix;
+    ParseFn prefixRule = getRule(_parser.previousType())->prefix;
     if (prefixRule == nullptr) {
         error("Expect expression.");
         return;
@@ -312,9 +287,9 @@ void Compiler::parsePrecedence(Precedence precedence) {
     bool canAssign = precedence <= Precedence::Assignment;
     (this->*prefixRule)(canAssign);
 
-    while (precedence <= getRule(_parser.current.type)->precedence) {
+    while (precedence <= getRule(_parser.currentType())->precedence) {
         advance();
-        ParseFn infixRule = getRule(_parser.previous.type)->infix;
+        ParseFn infixRule = getRule(_parser.previousType())->infix;
         (this->*infixRule)(canAssign);
     }
 
@@ -323,8 +298,8 @@ void Compiler::parsePrecedence(Precedence precedence) {
     }
 }
 
-uint8_t Compiler::identifierConstant(Token *name) {
-    return makeConstant(Value(name->start, name->length));
+uint8_t Compiler::identifierConstant(const Token &name) {
+    return makeConstant(Value(name.start, name.length));
 }
 
 void Compiler::addLocal(const Token &name) {
@@ -336,7 +311,7 @@ void Compiler::addLocal(const Token &name) {
 void Compiler::declareVariable() {
     if (_current->inGlobalScope()) return;
 
-    Token &name = _parser.previous;
+    const Token &name = _parser.previous();
     if (_current->hasLocal(name)) {
         error("Already a variable with this name in this scope.");
     }
@@ -350,7 +325,7 @@ uint8_t Compiler::parseVariable(const char *errorMessage) {
     declareVariable();
     if (!_current->inGlobalScope()) return 0;
 
-    return identifierConstant(&_parser.previous);
+    return identifierConstant(_parser.previous());
 }
 
 void Compiler::defineVariable(uint8_t global) {
@@ -549,27 +524,6 @@ void Compiler::whileStatement() {
     }
 }
 
-void Compiler::synchronize() {
-    _parser.panicMode = false;
-    while (_parser.current.type != TokenType::Eof) {
-        if (_parser.previous.type == TokenType::Semicolon) return;
-        switch (_parser.current.type) {
-            case TokenType::Class:
-            case TokenType::Fun:
-            case TokenType::Var:
-            case TokenType::For:
-            case TokenType::If:
-            case TokenType::While:
-            case TokenType::Print:
-            case TokenType::Return:
-                return;
-            default:
-                break;
-        }
-        advance();
-    }
-}
-
 void Compiler::declaration() {
     if (match(TokenType::Var)) {
         varDeclaration();
@@ -577,7 +531,7 @@ void Compiler::declaration() {
         statement();
     }
 
-    if (_parser.panicMode) synchronize();
+    if (_parser.panicMode()) _parser.synchronize();
 }
 
 void Compiler::statement() {
@@ -600,22 +554,4 @@ void Compiler::statement() {
     } else {
         expressionStatement();
     }
-}
-
-void Compiler::errorAt(const Token &token, const char *message) {
-    if (_parser.panicMode) return;
-    _parser.panicMode = true;
-
-    fprintf(stderr, "[line %d] Error", token.line);
-
-    if (token.type == TokenType::Eof) {
-        fprintf(stderr, " at endScope");
-    } else if (token.type == TokenType::Error) {
-        // nothing
-    } else {
-        fprintf(stderr, " at '%.*s'", token.length, token.start);
-    }
-
-    fprintf(stderr, ": %s\n", message);
-    _parser.hadError = true;
 }
