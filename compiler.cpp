@@ -400,6 +400,50 @@ void Compiler::expressionStatement() {
     emitByte(OpCode::Pop);
 }
 
+void Compiler::forStatement() {
+    beginScope();
+
+    consume(TokenType::LeftParen, "Expect '(' after 'for'.");
+    if (match(TokenType::Semicolon)) {
+        // no initializer
+    } else if (match(TokenType::Var)) {
+        varDeclaration();
+    } else {
+        expressionStatement();
+    }
+
+    int loopStart = currentChunk()->count();
+    int exitJump = -1;
+    if (!match(TokenType::Semicolon)) {
+        expression();
+        consume(TokenType::Semicolon, "Expect ';' after loop condition.");
+        exitJump = emitJump(OpCode::JumpIfFalse);
+        emitByte(OpCode::Pop);
+    }
+
+    if (!match(TokenType::RightParen)) {
+        int bodyJump = emitJump(OpCode::Jump);
+        int incrementStart = currentChunk()->count();
+        expression();
+        emitByte(OpCode::Pop);
+        consume(TokenType::RightParen, "Expect ')' after for clauses.");
+
+        emitLoop(loopStart);
+        loopStart = incrementStart;
+        patchJump(bodyJump);
+    }
+
+    statement();
+    emitLoop(loopStart);
+
+    if (exitJump != -1) {
+        patchJump(exitJump);
+        emitByte(OpCode::Pop);
+    }
+
+    endScope();
+}
+
 void Compiler::ifStatement() {
     consume(TokenType::LeftParen, "Expect '(' after 'if'.");
     expression();
@@ -472,6 +516,8 @@ void Compiler::declaration() {
 void Compiler::statement() {
     if (match(TokenType::Print)) {
         printStatement();
+    } else if (match(TokenType::For)) {
+        forStatement();
     } else if (match(TokenType::If)) {
         ifStatement();
     } else if (match(TokenType::While)) {

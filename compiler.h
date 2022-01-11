@@ -113,6 +113,8 @@ private:
 
     void expressionStatement();
 
+    void forStatement();
+
     void ifStatement();
 
     void printStatement();
