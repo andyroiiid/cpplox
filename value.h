@@ -58,9 +58,15 @@ public:
 
     bool operator==(const Value &rhs) const;
 
+    inline bool operator!=(const Value &rhs) const { return !operator==(rhs); }
+
     Value operator>(const Value &rhs) const;
 
+    Value operator>=(const Value &rhs) const;
+
     Value operator<(const Value &rhs) const;
+
+    Value operator<=(const Value &rhs) const;
 
     void print() const;
 

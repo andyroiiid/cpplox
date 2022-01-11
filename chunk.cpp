@@ -64,10 +64,16 @@ int Chunk::disassembleInstruction(int offset) const {
             return constantInstruction("OP_SET_GLOBAL", offset);
         case OpCode::Equal:
             return simpleInstruction("OP_EQUAL", offset);
+        case OpCode::NotEqual:
+            return simpleInstruction("OP_NOT_EQUAL", offset);
         case OpCode::Greater:
             return simpleInstruction("OP_GREATER", offset);
+        case OpCode::GreaterEqual:
+            return simpleInstruction("OP_GREATER_EQUAL", offset);
         case OpCode::Less:
             return simpleInstruction("OP_LESS", offset);
+        case OpCode::LessEqual:
+            return simpleInstruction("OP_LESS_EQUAL", offset);
         case OpCode::Add:
             return simpleInstruction("OP_ADD", offset);
         case OpCode::Subtract:
@@ -84,6 +90,8 @@ int Chunk::disassembleInstruction(int offset) const {
             return simpleInstruction("OP_PRINT", offset);
         case OpCode::Jump:
             return jumpInstruction("OP_JUMP", 1, offset);
+        case OpCode::JumpIfTrue:
+            return jumpInstruction("OP_JUMP_IF_TRUE", 1, offset);
         case OpCode::JumpIfFalse:
             return jumpInstruction("OP_JUMP_IF_FALSE", 1, offset);
         case OpCode::Return:

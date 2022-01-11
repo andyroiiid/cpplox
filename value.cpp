@@ -71,7 +71,17 @@ Value Value::operator>(const Value &rhs) const {
     return Value(asNumber() > rhs.asNumber());
 }
 
+Value Value::operator>=(const Value &rhs) const {
+    if (_type != rhs._type || !isNumber()) return {};
+    return Value(asNumber() >= rhs.asNumber());
+}
+
 Value Value::operator<(const Value &rhs) const {
     if (_type != rhs._type || !isNumber()) return {};
     return Value(asNumber() < rhs.asNumber());
+}
+
+Value Value::operator<=(const Value &rhs) const {
+    if (_type != rhs._type || !isNumber()) return {};
+    return Value(asNumber() <= rhs.asNumber());
 }

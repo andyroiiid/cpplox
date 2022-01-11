@@ -123,8 +123,7 @@ void Compiler::binary(bool) {
 
     switch (operatorType) {
         case TokenType::BangEqual:
-            emitByte(OpCode::Equal);
-            emitByte(OpCode::Not);
+            emitByte(OpCode::NotEqual);
             break;
         case TokenType::EqualEqual:
             emitByte(OpCode::Equal);
@@ -133,15 +132,13 @@ void Compiler::binary(bool) {
             emitByte(OpCode::Greater);
             break;
         case TokenType::GreaterEqual:
-            emitByte(OpCode::Less);
-            emitByte(OpCode::Not);
+            emitByte(OpCode::GreaterEqual);
             break;
         case TokenType::Less:
             emitByte(OpCode::Less);
             break;
         case TokenType::LessEqual:
-            emitByte(OpCode::Greater);
-            emitByte(OpCode::Not);
+            emitByte(OpCode::LessEqual);
             break;
         case TokenType::Plus:
             emitByte(OpCode::Add);
@@ -353,9 +350,7 @@ void Compiler::logicalAnd(bool) {
 }
 
 void Compiler::logicalOr(bool) {
-    int elseJump = emitJump(OpCode::JumpIfFalse);
-    int endJump = emitJump(OpCode::Jump);
-    patchJump(elseJump);
+    int endJump = emitJump(OpCode::JumpIfTrue);
     emitByte(OpCode::Pop);
     parsePrecedence(Precedence::Or);
     patchJump(endJump);

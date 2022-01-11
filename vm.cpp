@@ -120,6 +120,12 @@ VM::InterpretResult VM::run() {
                 push(Value(a == b));
                 break;
             }
+            case OpCode::NotEqual: {
+                Value b = pop();
+                Value a = pop();
+                push(Value(a != b));
+                break;
+            }
             case OpCode::Greater: {
                 Value b = pop();
                 Value a = pop();
@@ -131,10 +137,32 @@ VM::InterpretResult VM::run() {
                 push(result);
                 break;
             }
+            case OpCode::GreaterEqual: {
+                Value b = pop();
+                Value a = pop();
+                Value result = a >= b;
+                if (result.isNil()) {
+                    runtimeError("Operand must be numbers.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
+                break;
+            }
             case OpCode::Less: {
                 Value b = pop();
                 Value a = pop();
                 Value result = a < b;
+                if (result.isNil()) {
+                    runtimeError("Operand must be numbers.");
+                    return InterpretResult::RuntimeError;
+                }
+                push(result);
+                break;
+            }
+            case OpCode::LessEqual: {
+                Value b = pop();
+                Value a = pop();
+                Value result = a <= b;
                 if (result.isNil()) {
                     runtimeError("Operand must be numbers.");
                     return InterpretResult::RuntimeError;
@@ -209,9 +237,18 @@ VM::InterpretResult VM::run() {
                 _ip += offset;
                 break;
             }
+            case OpCode::JumpIfTrue: {
+                uint16_t offset = readShort();
+                if (!peek(0).isFalsey()) {
+                    _ip += offset;
+                }
+                break;
+            }
             case OpCode::JumpIfFalse: {
                 uint16_t offset = readShort();
-                if (peek(0).isFalsey()) _ip += offset;
+                if (peek(0).isFalsey()) {
+                    _ip += offset;
+                }
                 break;
             }
             case OpCode::Return: {
