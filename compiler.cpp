@@ -4,31 +4,6 @@
 
 #include "compiler.h"
 
-bool Scope::addLocal(const Token &name) {
-    if (localCount == UINT8_COUNT) return false;
-
-    Local &local = locals[localCount++];
-    local.name = name;
-    local.depth = -1;
-
-    return true;
-}
-
-Scope::ResolveResult Scope::resolveLocal(const Token &name, int &slot) const {
-    for (int i = localCount - 1; i >= 0; i--) {
-        const Local &local = locals[i];
-        if (name.lexemeEqual(local.name)) {
-            if (local.depth == -1) {
-                return ResolveResult::Uninitialized;
-            } else {
-                slot = i;
-                return ResolveResult::Local;
-            }
-        }
-    }
-    return ResolveResult::Global;
-}
-
 bool Compiler::compile(const std::string &source, Chunk *chunk) {
     _scanner = Scanner(source);
     _parser = Parser();
@@ -113,16 +88,13 @@ void Compiler::endCompile() {
 }
 
 void Compiler::beginScope() {
-    _current->scopeDepth++;
+    _current->begin();
 }
 
 void Compiler::endScope() {
-    _current->scopeDepth--;
-
-    while (_current->localCount > 0 &&
-           _current->lastLocal().depth > _current->scopeDepth) {
+    int count = _current->end();
+    for (int i = 0; i < count; i++) {
         emitByte(OpCode::Pop);
-        _current->localCount--;
     }
 }
 
@@ -327,18 +299,11 @@ void Compiler::addLocal(const Token &name) {
 }
 
 void Compiler::declareVariable() {
-    if (_current->scopeDepth == 0) return;
+    if (_current->isGlobal()) return;
 
     Token &name = _parser.previous;
-    for (int i = _current->localCount - 1; i >= 0; i--) {
-        Local &local = _current->locals[i];
-        if (local.depth != -1 && local.depth < _current->scopeDepth) {
-            break;
-        }
-
-        if (name.lexemeEqual(local.name)) {
-            error("Already a variable with this name in this scope.");
-        }
+    if (_current->hasLocal(name)) {
+        error("Already a variable with this name in this scope.");
     }
 
     addLocal(name);
@@ -348,18 +313,14 @@ uint8_t Compiler::parseVariable(const char *errorMessage) {
     consume(TokenType::Identifier, errorMessage);
 
     declareVariable();
-    if (_current->scopeDepth > 0) return 0;
+    if (!_current->isGlobal()) return 0;
 
     return identifierConstant(&_parser.previous);
 }
 
-void Compiler::markInitialized() {
-    _current->lastLocal().depth = _current->scopeDepth;
-}
-
 void Compiler::defineVariable(uint8_t global) {
-    if (_current->scopeDepth > 0) {
-        markInitialized();
+    if (!_current->isGlobal()) {
+        _current->markLastLocalInitialized();
         return;
     }
 

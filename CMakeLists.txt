@@ -10,6 +10,7 @@ add_executable(cpplox
         object.cpp object.h
         chunk.cpp chunk.h
         scanner.cpp scanner.h
+        scope.cpp scope.h
         compiler.cpp compiler.h
         table.cpp table.h
         vm.cpp vm.h
