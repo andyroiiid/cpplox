@@ -39,6 +39,8 @@ private:
 
     void emitBytes(OpCode opCode, uint8_t byte);
 
+    void emitLoop(int loopStart);
+
     int emitJump(OpCode instruction);
 
     void emitReturn();
@@ -114,6 +116,8 @@ private:
     void ifStatement();
 
     void printStatement();
+
+    void whileStatement();
 
     void synchronize();
 

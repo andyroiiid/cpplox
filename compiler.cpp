@@ -57,6 +57,16 @@ void Compiler::emitBytes(OpCode opCode, uint8_t byte) {
     emitByte(byte);
 }
 
+void Compiler::emitLoop(int loopStart) {
+    emitByte(OpCode::Loop);
+
+    int offset = currentChunk()->count() - loopStart + 2;
+    if (offset > UINT16_MAX) error("Loop body too large.");
+
+    emitByte((offset >> 8) & 0xFF);
+    emitByte(offset & 0xFF);
+}
+
 int Compiler::emitJump(OpCode instruction) {
     emitByte(instruction);
     emitByte(0xFF);
@@ -413,6 +423,21 @@ void Compiler::printStatement() {
     emitByte(OpCode::Print);
 }
 
+void Compiler::whileStatement() {
+    int loopStart = currentChunk()->count();
+    consume(TokenType::LeftParen, "Expect '(' after 'while'.");
+    expression();
+    consume(TokenType::RightParen, "Expect ')' after condition.");
+
+    int exitJump = emitJump(OpCode::JumpIfFalse);
+    emitByte(OpCode::Pop);
+    statement();
+    emitLoop(loopStart);
+
+    patchJump(exitJump);
+    emitByte(OpCode::Pop);
+}
+
 void Compiler::synchronize() {
     _parser.panicMode = false;
     while (_parser.current.type != TokenType::Eof) {
@@ -449,6 +474,8 @@ void Compiler::statement() {
         printStatement();
     } else if (match(TokenType::If)) {
         ifStatement();
+    } else if (match(TokenType::While)) {
+        whileStatement();
     } else if (match(TokenType::LeftBrace)) {
         beginScope();
         block();

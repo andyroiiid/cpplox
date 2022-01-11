@@ -96,6 +96,8 @@ int Chunk::disassembleInstruction(int offset) const {
             return jumpInstruction("OP_JUMP_IF_TRUE", 1, offset);
         case OpCode::JumpIfFalse:
             return jumpInstruction("OP_JUMP_IF_FALSE", 1, offset);
+        case OpCode::Loop:
+            return jumpInstruction("OP_LOOP", -1, offset);
         case OpCode::Return:
             return simpleInstruction("OP_RETURN", offset);
         default:

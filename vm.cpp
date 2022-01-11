@@ -262,6 +262,11 @@ VM::InterpretResult VM::run() {
                 }
                 break;
             }
+            case OpCode::Loop: {
+                uint16_t offset = readShort();
+                _ip -= offset;
+                break;
+            }
             case OpCode::Return: {
                 return InterpretResult::Ok;
             }

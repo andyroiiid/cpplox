@@ -38,6 +38,7 @@ enum class OpCode : uint8_t {
     Jump,
     JumpIfTrue,
     JumpIfFalse,
+    Loop,
     Return,
 };
 
