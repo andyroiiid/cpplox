@@ -17,7 +17,7 @@ public:
         RuntimeError,
     };
 
-    InterpretResult interpret(const std::string &source);
+    InterpretResult interpret(const char *source);
 
     inline Table &strings() { return _strings; };
 

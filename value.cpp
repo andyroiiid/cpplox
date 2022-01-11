@@ -7,6 +7,14 @@
 #include <cstdio>
 #include <cmath>
 
+#include "object.h"
+
+Value::Value(const char *chars, int length) : Value(ObjString::create(chars, length)) {}
+
+ObjType Value::objType() const { return asObj()->type; }
+
+bool Value::isString() const { return isObj() && objType() == ObjType::String; }
+
 void Value::print() const {
     switch (_type) {
         case ValueType::Bool:

@@ -7,6 +7,8 @@
 #include <cstdarg>
 
 #include "compiler.h"
+#include "object.h"
+#include "op_code.h"
 
 VM::~VM() {
     Obj *object = _objects;
@@ -17,7 +19,7 @@ VM::~VM() {
     }
 }
 
-VM::InterpretResult VM::interpret(const std::string &source) {
+VM::InterpretResult VM::interpret(const char *source) {
     Chunk chunk;
 
     Compiler compiler;

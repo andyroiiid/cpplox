@@ -5,15 +5,14 @@
 #ifndef CPPLOX_COMPILER_H
 #define CPPLOX_COMPILER_H
 
-#include <string>
+#include <vector>
 
-#include "chunk.h"
 #include "scanner.h"
-#include "scope.h"
+#include "token.h"
 
 class Compiler {
 public:
-    bool compile(const std::string &source, Chunk *chunk);
+    bool compile(const char *source, Chunk *chunk);
 
 private:
     struct Parser {

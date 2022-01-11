@@ -4,7 +4,12 @@
 
 #include "compiler.h"
 
-bool Compiler::compile(const std::string &source, Chunk *chunk) {
+#include "chunk.h"
+#include "op_code.h"
+#include "scope.h"
+#include "value.h"
+
+bool Compiler::compile(const char *source, Chunk *chunk) {
     _scanner = Scanner(source);
     _parser = Parser();
     _compilingChunk = chunk;

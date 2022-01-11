@@ -10,7 +10,7 @@ static void repl() {
         printf("> ");
         std::string line;
         std::getline(std::cin, line);
-        vm.interpret(line);
+        vm.interpret(line.c_str());
     }
 }
 
@@ -23,7 +23,7 @@ static std::string readFile(const std::string &path) {
 
 static void runFile(const std::string &path) {
     std::string source = readFile(path);
-    VM::InterpretResult result = VM::instance().interpret(source);
+    VM::InterpretResult result = VM::instance().interpret(source.c_str());
     if (result == VM::InterpretResult::CompileError) exit(65);
     if (result == VM::InterpretResult::RuntimeError) exit(70);
 }

@@ -4,32 +4,12 @@
 
 #include "scanner.h"
 
-const char *toString(TokenType type) {
-    static const char *STRINGS[]{
-            // single-character tokens
-            "LEFT_PAREN", "RIGHT_PAREN", "LEFT_BRACE", "RIGHT_BRACE",
-            "COMMA", "DOT", "MINUS", "PLUS", "SEMICOLON", "SLASH", "STAR", "PERCENT",
-            // one or two character tokens
-            "BANG", "BANG_EQUAL", "EQUAL", "EQUAL_EQUAL",
-            "GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL",
-            // literals
-            "IDENTIFIER", "STRING", "NUMBER",
-            // keywords
-            "AND", "BREAK", "CLASS", "CONTINUE", "ELSE", "FALSE", "FOR", "FUN", "IF",
-            "NIL", "OR", "PRINT", "RETURN", "SUPER", "THIS", "TRUE", "VAR", "WHILE",
-            // other
-            "ERROR", "EOF"
-    };
-    return STRINGS[static_cast<int>(type)];
-}
+#include <cstring>
 
-bool Token::lexemeEqual(const Token &rhs) const {
-    if (length != rhs.length) return false;
-    return memcmp(start, rhs.start, length) == 0;
-}
+#include "token.h"
 
-Scanner::Scanner(const std::string &source)
-        : _start(source.data()), _current(source.data()), _line(1) {
+Scanner::Scanner(const char *source)
+        : _start(source), _current(source), _line(1) {
 }
 
 Token Scanner::scan() {

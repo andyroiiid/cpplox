@@ -7,6 +7,8 @@
 #include <utility>
 #include <cstring>
 
+#include "object.h"
+
 Table::~Table() {
     delete[] _entries;
 }

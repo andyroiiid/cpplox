@@ -4,16 +4,19 @@ project(cpplox)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(cpplox
-        non_copyable.h
-        singleton.h
-        value.cpp value.h
-        object.cpp object.h
         chunk.cpp chunk.h
+        compiler.cpp compiler.h
+        forward.h
+        non_copyable.h
+        object.cpp object.h
+        op_code.h
         scanner.cpp scanner.h
         scope.cpp scope.h
-        compiler.cpp compiler.h
+        singleton.h
         table.cpp table.h
+        token.h token.cpp
+        value.cpp value.h
         vm.cpp vm.h
         main.cpp)
 
-target_compile_definitions(cpplox PRIVATE DEBUG_PRINT_CODE DEBUG_TRACE_EXECUTION)
+target_compile_definitions(cpplox PRIVATE DEBUG_PRINT_CODE)

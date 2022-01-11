@@ -5,40 +5,13 @@
 #ifndef CPPLOX_SCANNER_H
 #define CPPLOX_SCANNER_H
 
-#include <string>
-
-enum class TokenType {
-    // single-character tokens
-    LeftParen, RightParen, LeftBrace, RightBrace,
-    Comma, Dot, Minus, Plus, Semicolon, Slash, Star, Percent,
-    // one or two character tokens
-    Bang, BangEqual, Equal, EqualEqual,
-    Greater, GreaterEqual, Less, LessEqual,
-    // literals
-    Identifier, String, Number,
-    // keywords
-    And, Break, Class, Continue, Else, False, For, Fun, If,
-    Nil, Or, Print, Return, Super, This, True, Var, While,
-    // other
-    Error, Eof
-};
-
-const char *toString(TokenType type);
-
-struct Token {
-    TokenType type = TokenType::Error;
-    const char *start = nullptr;
-    int length = 0;
-    int line = 0;
-
-    [[nodiscard]] bool lexemeEqual(const Token &rhs) const;
-};
+#include "forward.h"
 
 class Scanner {
 public:
     Scanner() = default;
 
-    explicit Scanner(const std::string &source);
+    explicit Scanner(const char *source);
 
     Token scan();
 

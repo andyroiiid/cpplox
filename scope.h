@@ -7,7 +7,7 @@
 
 #include <array>
 
-#include "scanner.h"
+#include "token.h"
 
 class Scope {
 public:

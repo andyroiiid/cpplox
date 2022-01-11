@@ -4,7 +4,8 @@
 
 #include "chunk.h"
 
-#include <cstdio>
+#include "op_code.h"
+#include "value.h"
 
 void Chunk::write(uint8_t byte, int line) {
     _code.push_back(byte);
@@ -25,8 +26,8 @@ Value Chunk::getConstant(uint8_t index) {
     return _constants[index];
 }
 
-void Chunk::disassemble(const std::string &name) const {
-    printf("== %s ==\n", name.c_str());
+void Chunk::disassemble(const char *name) const {
+    printf("== %s ==\n", name);
     int offset = 0;
     while (offset < _code.size()) {
         offset = disassembleInstruction(offset);
@@ -101,32 +102,32 @@ int Chunk::disassembleInstruction(int offset) const {
         case OpCode::Return:
             return simpleInstruction("OP_RETURN", offset);
         default:
-            printf("Unknown op code %hhu\n", instruction);
+            printf("Unknown op code %d\n", instruction);
             return offset + 1;
     }
 }
 
-int Chunk::simpleInstruction(const std::string &name, int offset) {
-    printf("%s\n", name.c_str());
+int Chunk::simpleInstruction(const char *name, int offset) {
+    printf("%s\n", name);
     return offset + 1;
 }
 
-int Chunk::byteInstruction(const std::string &name, int offset) const {
+int Chunk::byteInstruction(const char *name, int offset) const {
     uint8_t slot = _code[offset + 1];
-    printf("%-16s %4d\n", name.c_str(), slot);
+    printf("%-16s %4d\n", name, slot);
     return offset + 2;
 }
 
-int Chunk::jumpInstruction(const std::string &name, int sign, int offset) const {
+int Chunk::jumpInstruction(const char *name, int sign, int offset) const {
     auto jump = (uint16_t) (_code[offset + 1] << 8);
     jump |= _code[offset + 2];
-    printf("%-16s %4d -> %d\n", name.c_str(), offset, offset + 3 + sign * jump);
+    printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign * jump);
     return offset + 3;
 }
 
-int Chunk::constantInstruction(const std::string &name, int offset) const {
+int Chunk::constantInstruction(const char *name, int offset) const {
     uint8_t constant = _code[offset + 1];
-    printf("%-16s %4d '", name.c_str(), constant);
+    printf("%-16s %4d '", name, constant);
     _constants[constant].print();
     printf("'\n");
     return offset + 2;

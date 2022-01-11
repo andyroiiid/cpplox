@@ -5,6 +5,8 @@
 #ifndef CPPLOX_TABLE_H
 #define CPPLOX_TABLE_H
 
+#include <cstdint>
+
 #include "value.h"
 
 class Table {

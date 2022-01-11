@@ -5,7 +5,7 @@
 #ifndef CPPLOX_VALUE_H
 #define CPPLOX_VALUE_H
 
-#include "object.h"
+#include "forward.h"
 
 enum class ValueType {
     Nil,
@@ -22,7 +22,7 @@ public:
 
     explicit inline Value(double value) : _type(ValueType::Number) { _as.number = value; }
 
-    inline Value(const char *chars, int length) : Value(ObjString::create(chars, length)) {}
+    Value(const char *chars, int length);
 
     [[nodiscard]] inline bool isBool() const { return _type == ValueType::Bool; }
 
@@ -38,9 +38,9 @@ public:
 
     [[nodiscard]] inline Obj *asObj() const { return _as.obj; }
 
-    [[nodiscard]] inline ObjType objType() const { return asObj()->type; }
+    [[nodiscard]] ObjType objType() const;
 
-    [[nodiscard]] inline bool isString() const { return isObj() && objType() == ObjType::String; }
+    [[nodiscard]] bool isString() const;
 
     [[nodiscard]] inline ObjString *asString() const { return reinterpret_cast<ObjString *>(asObj()); }
 

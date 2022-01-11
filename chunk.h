@@ -6,41 +6,8 @@
 #define CPPLOX_CHUNK_H
 
 #include <vector>
-#include <string>
 
-#include "value.h"
-
-enum class OpCode : uint8_t {
-    Constant,
-    Nil,
-    True,
-    False,
-    Pop,
-    GetLocal,
-    SetLocal,
-    GetGlobal,
-    DefineGlobal,
-    SetGlobal,
-    Equal,
-    NotEqual,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Modulo,
-    Not,
-    Negate,
-    Print,
-    Jump,
-    JumpIfTrue,
-    JumpIfFalse,
-    Loop,
-    Return,
-};
+#include "forward.h"
 
 class Chunk {
 public:
@@ -58,18 +25,18 @@ public:
 
     [[nodiscard]] int getInstructionLine(int instruction) const { return _lines[instruction]; }
 
-    void disassemble(const std::string &name) const;
+    void disassemble(const char *name) const;
 
     int disassembleInstruction(int offset) const; // NOLINT(modernize-use-nodiscard)
 
 private:
-    static int simpleInstruction(const std::string &name, int offset);
+    static int simpleInstruction(const char *name, int offset);
 
-    [[nodiscard]] int byteInstruction(const std::string &name, int offset) const;
+    [[nodiscard]] int byteInstruction(const char *name, int offset) const;
 
-    [[nodiscard]] int jumpInstruction(const std::string &name, int sign, int offset) const;
+    [[nodiscard]] int jumpInstruction(const char *name, int sign, int offset) const;
 
-    [[nodiscard]] int constantInstruction(const std::string &name, int offset) const;
+    [[nodiscard]] int constantInstruction(const char *name, int offset) const;
 
     std::vector<uint8_t> _code;
     std::vector<int> _lines;
