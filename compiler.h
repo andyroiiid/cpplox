@@ -24,6 +24,10 @@ private:
 
     inline bool match(TokenType type) { return _parser.match(type); }
 
+    [[nodiscard]] inline bool hadError() const { return _parser.hadError(); }
+
+    inline void error(const char *message) { _parser.error(message); }
+
     inline Chunk &currentChunk() { return _current->function()->chunk; }
 
     void emitByte(uint8_t byte);
@@ -118,11 +122,9 @@ private:
 
     void whileStatement();
 
-    void declaration();
-
     void statement();
 
-    inline void error(const char *message) { _parser.error(message); }
+    void declaration();
 
     Parser _parser;
     CompilerContext *_current = nullptr;

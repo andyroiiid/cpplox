@@ -8,18 +8,16 @@
 #include <cstdlib>
 
 #include "scanner.h"
-#include "token.h"
 #include "value.h"
 
+// actually just a token iterator
 class Parser {
 public:
-    Parser() = default;
-
-    explicit Parser(const char *source) : _scanner(source) {}
+    inline void init(const char *source) { _scanner.init(source); }
 
     [[nodiscard]] inline bool hadError() const { return _hadError; }
 
-    [[nodiscard]] inline bool panicMode() const { return _panicMode; }
+    inline void error(const char *message) { errorAt(_previous, message); }
 
     void advance();
 
@@ -35,15 +33,9 @@ public:
 
     [[nodiscard]] inline Value string() const { return {_previous.start + 1, _previous.length - 2}; }
 
-    inline void error(const char *message) { errorAt(_previous, message); }
-
-    [[nodiscard]] inline TokenType currentType() const { return _current.type; }
-
-    [[nodiscard]] inline int previousLine() const { return _previous.line; }
-
-    [[nodiscard]] inline TokenType previousType() const { return _previous.type; }
-
     [[nodiscard]] inline const Token &previous() const { return _previous; }
+
+    [[nodiscard]] inline const Token &current() const { return _current; }
 
 private:
     inline void errorAtCurrent(const char *message) { errorAt(_current, message); }

@@ -30,6 +30,8 @@ bool Parser::match(TokenType type) {
 }
 
 void Parser::synchronize() {
+    if (!_panicMode) return;
+
     _panicMode = false;
     while (_current.type != TokenType::Eof) {
         if (_previous.type == TokenType::Semicolon) return;

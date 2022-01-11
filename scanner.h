@@ -5,13 +5,15 @@
 #ifndef CPPLOX_SCANNER_H
 #define CPPLOX_SCANNER_H
 
-#include "forward.h"
+#include "token.h"
 
 class Scanner {
 public:
-    Scanner() = default;
-
-    explicit Scanner(const char *source);
+    inline void init(const char *source) {
+        _start = source;
+        _current = source;
+        _line = 1;
+    }
 
     Token scan();
 

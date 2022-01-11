@@ -9,22 +9,22 @@
 #include "value.h"
 
 ObjFunction *Compiler::compile(const char *source) {
-    _parser = Parser(source);
+    _parser.init(source);
     CompilerContext context(FunctionType::Script);
     beginCompile(&context);
 
     advance();
 
-    while (!_parser.match(TokenType::Eof)) {
+    while (!match(TokenType::Eof)) {
         declaration();
     }
 
     ObjFunction *function = endCompile();
-    return _parser.hadError() ? nullptr : function;
+    return hadError() ? nullptr : function;
 }
 
 void Compiler::emitByte(uint8_t byte) {
-    currentChunk().write(byte, _parser.previousLine());
+    currentChunk().write(byte, _parser.previous().line);
 }
 
 void Compiler::emitBytes(OpCode opCode, uint8_t byte) {
@@ -86,7 +86,7 @@ ObjFunction *Compiler::endCompile() {
     ObjFunction *function = _current->function();
 
 #ifdef DEBUG_PRINT_CODE
-    if (!_parser.hadError()) {
+    if (!hadError()) {
         ObjString *name = function->name;
         currentChunk().disassemble(name != nullptr ? name->chars() : "<script>");
     }
@@ -107,7 +107,7 @@ void Compiler::endScope() {
 }
 
 void Compiler::binary(bool) {
-    TokenType operatorType = _parser.previousType();
+    TokenType operatorType = _parser.previous().type;
     const ParseRule *rule = getRule(operatorType);
     parsePrecedence(static_cast<Precedence>(static_cast<int>(rule->precedence) + 1));
 
@@ -151,7 +151,7 @@ void Compiler::binary(bool) {
 }
 
 void Compiler::literal(bool) {
-    switch (_parser.previousType()) {
+    switch (_parser.previous().type) {
         case TokenType::False:
             emitByte(OpCode::False);
             break;
@@ -211,7 +211,7 @@ void Compiler::variable(bool canAssign) {
 }
 
 void Compiler::unary(bool) {
-    TokenType operatorType = _parser.previousType();
+    TokenType operatorType = _parser.previous().type;
 
     expression();
 
@@ -278,7 +278,7 @@ const Compiler::ParseRule *Compiler::getRule(TokenType type) {
 
 void Compiler::parsePrecedence(Precedence precedence) {
     advance();
-    ParseFn prefixRule = getRule(_parser.previousType())->prefix;
+    ParseFn prefixRule = getRule(_parser.previous().type)->prefix;
     if (prefixRule == nullptr) {
         error("Expect expression.");
         return;
@@ -287,9 +287,9 @@ void Compiler::parsePrecedence(Precedence precedence) {
     bool canAssign = precedence <= Precedence::Assignment;
     (this->*prefixRule)(canAssign);
 
-    while (precedence <= getRule(_parser.currentType())->precedence) {
+    while (precedence <= getRule(_parser.current().type)->precedence) {
         advance();
-        ParseFn infixRule = getRule(_parser.previousType())->infix;
+        ParseFn infixRule = getRule(_parser.previous().type)->infix;
         (this->*infixRule)(canAssign);
     }
 
@@ -355,7 +355,7 @@ void Compiler::expression() {
     parsePrecedence(Precedence::Assignment);
 }
 
-void Compiler::block() {
+void Compiler::block() { // NOLINT(misc-no-recursion)
     while (!check(TokenType::RightBrace) && !check(TokenType::Eof)) {
         declaration();
     }
@@ -412,7 +412,7 @@ void Compiler::continueStatement() {
     emitLoop(_loopStart);
 }
 
-void Compiler::forStatement() {
+void Compiler::forStatement() { // NOLINT(misc-no-recursion)
     beginScope();
 
     consume(TokenType::LeftParen, "Expect '(' after 'for'.");
@@ -469,7 +469,7 @@ void Compiler::forStatement() {
     }
 }
 
-void Compiler::ifStatement() {
+void Compiler::ifStatement() { // NOLINT(misc-no-recursion)
     consume(TokenType::LeftParen, "Expect '(' after 'if'.");
     expression();
     consume(TokenType::RightParen, "Expect ')' after condition.");
@@ -492,7 +492,7 @@ void Compiler::printStatement() {
     emitByte(OpCode::Print);
 }
 
-void Compiler::whileStatement() {
+void Compiler::whileStatement() { // NOLINT(misc-no-recursion)
     beginScope();
 
     int loopStart = _loopStart;
@@ -524,17 +524,7 @@ void Compiler::whileStatement() {
     }
 }
 
-void Compiler::declaration() {
-    if (match(TokenType::Var)) {
-        varDeclaration();
-    } else {
-        statement();
-    }
-
-    if (_parser.panicMode()) _parser.synchronize();
-}
-
-void Compiler::statement() {
+void Compiler::statement() { // NOLINT(misc-no-recursion)
     if (match(TokenType::Print)) {
         printStatement();
     } else if (match(TokenType::Break)) {
@@ -554,4 +544,13 @@ void Compiler::statement() {
     } else {
         expressionStatement();
     }
+}
+
+void Compiler::declaration() { // NOLINT(misc-no-recursion)
+    if (match(TokenType::Var)) {
+        varDeclaration();
+    } else {
+        statement();
+    }
+    _parser.synchronize();
 }

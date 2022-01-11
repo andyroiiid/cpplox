@@ -8,10 +8,6 @@
 
 #include "token.h"
 
-Scanner::Scanner(const char *source)
-        : _start(source), _current(source), _line(1) {
-}
-
 Token Scanner::scan() {
     skipWhitespace();
 
