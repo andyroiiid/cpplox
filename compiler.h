@@ -144,6 +144,7 @@ private:
 
     int _loopStart = -1;
     int _loopScopeDepth = 0;
+    std::vector<int> _loopBreakJumps;
 };
 
 #endif //CPPLOX_COMPILER_H

@@ -403,7 +403,19 @@ void Compiler::expressionStatement() {
 }
 
 void Compiler::breakStatement() {
-    error("'break' is not implemented yet.");
+    if (_loopStart == -1) {
+        error("Can't use 'break' outside of a loop.");
+    }
+
+    consume(TokenType::Semicolon, "Expect';' after 'break'.");
+
+    // loop statements always introduce a new scope, thus _loopScopeDepth - 1
+    int numLocals = _current->numLocalsTill(_loopScopeDepth - 1);
+    for (int i = 0; i < numLocals; i++) {
+        emitByte(OpCode::Pop);
+    }
+
+    _loopBreakJumps.push_back(emitJump(OpCode::Jump));
 }
 
 void Compiler::continueStatement() {
@@ -433,8 +445,9 @@ void Compiler::forStatement() {
         expressionStatement();
     }
 
-    int surroundingLoopStart = _loopStart;
-    int surroundingLoopScopeDepth = _loopScopeDepth;
+    int loopStart = _loopStart;
+    int loopScopeDepth = _loopScopeDepth;
+    std::vector<int> loopBreakJumps = std::move(_loopBreakJumps);
     _loopStart = currentChunk()->count();
     _loopScopeDepth = _current->depth();
 
@@ -466,10 +479,15 @@ void Compiler::forStatement() {
         emitByte(OpCode::Pop);
     }
 
-    _loopStart = surroundingLoopStart;
-    _loopScopeDepth = surroundingLoopScopeDepth;
+    _loopStart = loopStart;
+    _loopScopeDepth = loopScopeDepth;
+    std::swap(_loopBreakJumps, loopBreakJumps);
 
     endScope();
+
+    for (int breakJump: loopBreakJumps) {
+        patchJump(breakJump);
+    }
 }
 
 void Compiler::ifStatement() {
@@ -496,8 +514,11 @@ void Compiler::printStatement() {
 }
 
 void Compiler::whileStatement() {
-    int surroundingLoopStart = _loopStart;
-    int surroundingLoopScopeDepth = _loopScopeDepth;
+    beginScope();
+
+    int loopStart = _loopStart;
+    int loopScopeDepth = _loopScopeDepth;
+    std::vector<int> loopBreakJumps = std::move(_loopBreakJumps);
     _loopStart = currentChunk()->count();
     _loopScopeDepth = _current->depth();
 
@@ -513,8 +534,15 @@ void Compiler::whileStatement() {
     patchJump(exitJump);
     emitByte(OpCode::Pop);
 
-    _loopStart = surroundingLoopStart;
-    _loopScopeDepth = surroundingLoopScopeDepth;
+    _loopStart = loopStart;
+    _loopScopeDepth = loopScopeDepth;
+    std::swap(_loopBreakJumps, loopBreakJumps);
+
+    endScope();
+
+    for (int breakJump: loopBreakJumps) {
+        patchJump(breakJump);
+    }
 }
 
 void Compiler::synchronize() {
